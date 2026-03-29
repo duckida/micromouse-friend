@@ -43,6 +43,18 @@ export function useSerial() {
     };
   }, []);
 
+  // Send data over serial
+  const send = useCallback(async (data) => {
+    const manager = connectionManagerRef.current;
+    if (!manager) return;
+    
+    try {
+      await manager.send(data);
+    } catch (error) {
+      console.error('Send error:', error);
+    }
+  }, []);
+
   // Check for data timeout periodically
   useEffect(() => {
     const interval = setInterval(() => {
@@ -107,6 +119,7 @@ export function useSerial() {
     timeoutWarning,
     connect,
     disconnect,
+    send,
     isSupported: ConnectionManager.isSupported()
   };
 }

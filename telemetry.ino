@@ -47,8 +47,8 @@ void sendMazeState() {
   for (int x = 0; x < MAZE_WIDTH; x++) {
     Serial1.print("[");
     for (int y = 0; y < MAZE_HEIGHT; y++) {
-      // Get cell from maze array
-      Cell cell = maze[x * MAZE_HEIGHT + y];
+      // Get cell from maze array using 2D indexing
+      Cell cell = maze[x][y];
 
       Serial1.print("{\"x\":");
       Serial1.print(x);

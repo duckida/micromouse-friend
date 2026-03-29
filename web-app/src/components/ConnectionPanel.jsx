@@ -12,6 +12,7 @@ import './ConnectionPanel.css';
  * @property {string|null} connectionState.errorMessage - Error message if any
  * @property {Function} onConnect - Connect handler
  * @property {Function} onDisconnect - Disconnect handler
+ * @property {Function} onStartSolve - Start maze solve handler
  * @property {boolean} isSupported - Whether Web Serial API is supported
  */
 
@@ -23,6 +24,7 @@ export function ConnectionPanel({
   connectionState, 
   onConnect, 
   onDisconnect, 
+  onStartSolve,
   isSupported 
 }) {
   const { status, errorMessage } = connectionState;
@@ -79,12 +81,20 @@ export function ConnectionPanel({
       
       <div className="connection-actions">
         {status === ConnectionState.CONNECTED ? (
-          <button 
-            className="disconnect-button"
-            onClick={onDisconnect}
-          >
-            Disconnect
-          </button>
+          <>
+            <button 
+              className="disconnect-button"
+              onClick={onDisconnect}
+            >
+              Disconnect
+            </button>
+            <button 
+              className="solve-button"
+              onClick={onStartSolve}
+            >
+              Start Solve
+            </button>
+          </>
         ) : (
           <button 
             className="connect-button"

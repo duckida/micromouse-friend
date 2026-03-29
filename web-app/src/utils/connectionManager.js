@@ -15,6 +15,7 @@ export class ConnectionManager {
   constructor() {
     this.port = null;
     this.reader = null;
+    this.writer = null;
     this.buffer = '';
     this.state = ConnectionState.DISCONNECTED;
     this.errorMessage = null;
@@ -85,6 +86,11 @@ export class ConnectionManager {
       const decoder = new TextDecoderStream();
       this.port.readable.pipeTo(decoder.writable);
       this.reader = decoder.readable.getReader();
+      
+      // Set up writer for sending commands
+      const encoder = new TextEncoderStream();
+      encoder.readable.pipeTo(this.port.writable);
+      this.writer = encoder.writable.getWriter();
 
       this._updateState(ConnectionState.CONNECTED);
       this.lastDataTime = Date.now();
@@ -105,6 +111,10 @@ export class ConnectionManager {
         await this.reader.cancel();
         this.reader = null;
       }
+      if (this.writer) {
+        await this.writer.close();
+        this.writer = null;
+      }
       if (this.port) {
         await this.port.close();
         this.port = null;
@@ -114,6 +124,20 @@ export class ConnectionManager {
     } catch (error) {
       console.error('Error during disconnect:', error);
       this._updateState(ConnectionState.ERROR, this._getErrorMessage(error));
+    }
+  }
+
+  // Send data to the serial port
+  async send(data) {
+    if (!this.writer || this.state !== ConnectionState.CONNECTED) {
+      throw new Error('Not connected');
+    }
+    
+    try {
+      await this.writer.write(data);
+    } catch (error) {
+      console.error('Send error:', error);
+      throw error;
     }
   }
 

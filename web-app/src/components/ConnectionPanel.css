@@ -110,10 +110,28 @@
   background-color: #d32f2f;
 }
 
+.solve-button {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 120px;
+  transition: background-color 0.2s, transform 0.1s;
+  background-color: #4caf50;
+  color: white;
+}
+
+.solve-button:hover {
+  background-color: #388e3c;
+}
+
 /* Touch-friendly sizing */
 @media (max-width: 768px) {
   .connect-button,
-  .disconnect-button {
+  .disconnect-button,
+  .solve-button {
     padding: 16px 32px;
     font-size: 18px;
     min-width: 140px;

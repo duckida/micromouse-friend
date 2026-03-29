@@ -40,8 +40,14 @@ function App() {
     timeoutWarning,
     connect,
     disconnect,
+    send,
     isSupported
   } = useSerial();
+  
+  // Start maze solving mode
+  const handleStartSolve = useCallback(() => {
+    send('7\n');
+  }, [send]);
 
   // Save settings to localStorage when they change
   useEffect(() => {
@@ -75,6 +81,7 @@ function App() {
               connectionState={connectionState}
               onConnect={connect}
               onDisconnect={disconnect}
+              onStartSolve={handleStartSolve}
               isSupported={isSupported}
             />
 
