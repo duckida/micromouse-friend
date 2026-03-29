@@ -275,17 +275,66 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight) {
 }
 
 /**
- * Render the complete maze
+ * Draw backdrop image behind the maze
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {HTMLCanvasElement} canvas - Canvas element
+ * @param {HTMLImageElement} backdropImage - The backdrop image
+ * @param {number} opacity - Opacity of the backdrop (0-1)
  */
-export function renderMaze(ctx, mazeState, settings = { showCosts: true, showWalls: true }, pathHistory = []) {
-  if (!mazeState) return;
+export function drawBackdrop(ctx, canvas, backdropImage, opacity = 0.5) {
+  if (!backdropImage || !backdropImage.complete || !backdropImage.naturalWidth) return;
 
+  const canvasWidth = canvas.width;
+  const canvasHeight = canvas.height;
+  const imgWidth = backdropImage.naturalWidth;
+  const imgHeight = backdropImage.naturalHeight;
+
+  // Calculate how to fit the image to cover the canvas while maintaining aspect ratio
+  const scale = Math.max(canvasWidth / imgWidth, canvasHeight / imgHeight);
+  const scaledWidth = imgWidth * scale;
+  const scaledHeight = imgHeight * scale;
+  
+  // Center the image
+  const x = (canvasWidth - scaledWidth) / 2;
+  const y = (canvasHeight - scaledHeight) / 2;
+
+  ctx.save();
+  ctx.globalAlpha = opacity;
+  ctx.drawImage(backdropImage, x, y, scaledWidth, scaledHeight);
+  ctx.restore();
+}
+
+/**
+ * Render the complete maze
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {Object} mazeState - Maze state to render
+ * @param {Object} settings - Render settings
+ * @param {Array} pathHistory - Path history array
+ * @param {HTMLImageElement|null} backdropImage - Optional backdrop image
+ */
+export function renderMaze(ctx, mazeState, settings = { showCosts: true, showWalls: true, backdropOpacity: 0.5 }, pathHistory = [], backdropImage = null) {
   const canvas = ctx.canvas;
-  const layout = calculateLayout(canvas.width, canvas.height, mazeState.w, mazeState.h);
-
+  
   // Clear canvas with white background
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw backdrop image if provided
+  if (backdropImage) {
+    drawBackdrop(ctx, canvas, backdropImage, settings.backdropOpacity || 0.5);
+  }
+
+  if (!mazeState) {
+    // Draw placeholder text if no maze state
+    ctx.fillStyle = '#999999';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Connect to robot to view maze', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+
+  const layout = calculateLayout(canvas.width, canvas.height, mazeState.w, mazeState.h);
 
   // Draw in order: grid, costs, path, walls, robot
   drawGrid(ctx, layout, mazeState.w, mazeState.h);
@@ -306,5 +355,6 @@ export default {
   drawCosts,
   drawPath,
   drawRobot,
+  drawBackdrop,
   renderMaze
 };

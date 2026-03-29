@@ -2,6 +2,7 @@
 // User preferences UI for visualization settings
 
 import React from 'react';
+import MazeBackdropUpload from './MazeBackdropUpload.jsx';
 import './SettingsPanel.css';
 
 /**
@@ -9,19 +10,29 @@ import './SettingsPanel.css';
  * @property {boolean} showCosts - Whether to show cost values
  * @property {boolean} showWalls - Whether to show walls
  * @property {string} colorScheme - Color scheme ('default', 'high-contrast', 'dark')
+ * @property {number} backdropOpacity - Opacity of backdrop image (0-1)
  */
 
 /**
  * @typedef {Object} SettingsPanelProps
  * @property {Settings} settings - Current settings
  * @property {Function} onSettingsChange - Settings change handler
+ * @property {string|null} backdropImage - Current backdrop image data URL
+ * @property {Function} onBackdropImageUpload - Handler when backdrop image is uploaded
+ * @property {Function} onBackdropImageClear - Handler when backdrop image is cleared
  */
 
 /**
  * Settings panel component
  * @param {SettingsPanelProps} props - Component props
  */
-export function SettingsPanel({ settings, onSettingsChange }) {
+export function SettingsPanel({ 
+  settings, 
+  onSettingsChange, 
+  backdropImage, 
+  onBackdropImageUpload, 
+  onBackdropImageClear 
+}) {
   const handleToggle = (key) => {
     onSettingsChange({
       ...settings,
@@ -40,7 +51,16 @@ export function SettingsPanel({ settings, onSettingsChange }) {
     onSettingsChange({
       showCosts: true,
       showWalls: true,
-      colorScheme: 'default'
+      colorScheme: 'default',
+      backdropOpacity: 0.5
+    });
+  };
+
+  const handleBackdropOpacityChange = (e) => {
+    const opacity = parseFloat(e.target.value);
+    onSettingsChange({
+      ...settings,
+      backdropOpacity: opacity
     });
   };
 
@@ -87,6 +107,33 @@ export function SettingsPanel({ settings, onSettingsChange }) {
             <option value="dark">Dark</option>
           </select>
         </label>
+      </div>
+
+      <div className="settings-group">
+        <h4 className="settings-subtitle">Backdrop Image</h4>
+        <MazeBackdropUpload
+          backdropImage={backdropImage}
+          onImageUpload={onBackdropImageUpload}
+          onImageClear={onBackdropImageClear}
+        />
+        
+        {backdropImage && (
+          <div className="backdrop-opacity-control">
+            <label className="opacity-label">
+              <span className="setting-label">Backdrop Opacity</span>
+              <span className="opacity-value">{Math.round((settings.backdropOpacity || 0.5) * 100)}%</span>
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value={settings.backdropOpacity || 0.5}
+              onChange={handleBackdropOpacityChange}
+              className="opacity-slider"
+            />
+          </div>
+        )}
       </div>
       
       <button className="reset-button" onClick={handleReset}>

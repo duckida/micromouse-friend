@@ -13,11 +13,15 @@ import './App.css';
 const DEFAULT_SETTINGS = {
   showCosts: true,
   showWalls: true,
-  colorScheme: 'default'
+  colorScheme: 'default',
+  backdropOpacity: 0.5
 };
 
 // Local storage key for settings
 const SETTINGS_STORAGE_KEY = 'micromouse-visualizer-settings';
+
+// Local storage key for backdrop image
+const BACKDROP_IMAGE_STORAGE_KEY = 'micromouse-visualizer-backdrop';
 
 function App() {
   // Load settings from localStorage or use defaults
@@ -31,6 +35,16 @@ function App() {
       console.error('Failed to load settings:', error);
     }
     return DEFAULT_SETTINGS;
+  });
+
+  // Backdrop image state
+  const [backdropImage, setBackdropImage] = useState(() => {
+    try {
+      return localStorage.getItem(BACKDROP_IMAGE_STORAGE_KEY);
+    } catch (error) {
+      console.error('Failed to load backdrop image:', error);
+      return null;
+    }
   });
 
   // Serial connection state
@@ -59,9 +73,32 @@ function App() {
     }
   }, [settings]);
 
+  // Save backdrop image to localStorage when it changes
+  useEffect(() => {
+    try {
+      if (backdropImage) {
+        localStorage.setItem(BACKDROP_IMAGE_STORAGE_KEY, backdropImage);
+      } else {
+        localStorage.removeItem(BACKDROP_IMAGE_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.error('Failed to save backdrop image:', error);
+    }
+  }, [backdropImage]);
+
   // Handle settings change
   const handleSettingsChange = useCallback((newSettings) => {
     setSettings(newSettings);
+  }, []);
+
+  // Handle backdrop image upload
+  const handleBackdropImageUpload = useCallback((dataUrl) => {
+    setBackdropImage(dataUrl);
+  }, []);
+
+  // Handle backdrop image clear
+  const handleBackdropImageClear = useCallback(() => {
+    setBackdropImage(null);
   }, []);
 
   return (
@@ -74,7 +111,12 @@ function App() {
       <main className="app-main">
         <div className="app-content">
           <div className="visualization-area">
-            <MazeCanvas mazeState={mazeState} settings={settings} pathHistory={pathHistory} />
+            <MazeCanvas 
+              mazeState={mazeState} 
+              settings={settings} 
+              pathHistory={pathHistory}
+              backdropImage={backdropImage}
+            />
           </div>
 
           <div className="controls-area">
@@ -96,6 +138,9 @@ function App() {
               <SettingsPanel
                 settings={settings}
                 onSettingsChange={handleSettingsChange}
+                backdropImage={backdropImage}
+                onBackdropImageUpload={handleBackdropImageUpload}
+                onBackdropImageClear={handleBackdropImageClear}
               />
             </div>
           </div>

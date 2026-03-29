@@ -1,0 +1,122 @@
+/* MazeBackdropUpload Component Styles */
+
+.backdrop-upload-container {
+  width: 100%;
+}
+
+.backdrop-file-input {
+  display: none;
+}
+
+.backdrop-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border: 2px dashed #d4d4d8;
+  border-radius: 8px;
+  background-color: #fafafa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  min-height: 80px;
+}
+
+.backdrop-dropzone:hover {
+  border-color: #7c3aed;
+  background-color: rgba(139, 92, 246, 0.05);
+}
+
+.backdrop-dropzone:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+
+.upload-icon {
+  color: #a1a1aa;
+  margin-bottom: 8px;
+}
+
+.dropzone-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #52525b;
+  margin-bottom: 4px;
+}
+
+.dropzone-hint {
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+.backdrop-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+.backdrop-thumbnail {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #e4e4e7;
+}
+
+.clear-backdrop-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.clear-backdrop-button:hover {
+  background-color: #dc2626;
+}
+
+.clear-backdrop-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .backdrop-dropzone {
+    padding: 12px;
+    min-height: 70px;
+  }
+
+  .upload-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .dropzone-text {
+    font-size: 13px;
+  }
+
+  .backdrop-preview {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .clear-backdrop-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
