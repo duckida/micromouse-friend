@@ -1,0 +1,1101 @@
+// Gemini Motion Controller
+// Creates a class `Motion()` that exposes functions `driveDistance(mm)` and `driveAngle(deg)`
+// You must call `update()` in a loop/ISR
+
+// telling the program these exist
+extern volatile int leftEncoderValue;
+extern volatile int rightEncoderValue;
+extern volatile int encoderDifference;
+extern volatile float heading;
+void setMotors(int left, int right);
+void stop();
+void updateDirection(int turnDir);
+float pulsesToDistance(int pulses);
+void updatePosition();
+void updatePositionBack();
+void resetHeadingVariable();
+float calculateDistancePulses(int mm);
+float calculateAnglePulses(int deg);
+
+class Motion {
+  private:
+      // state: 0=idle 1=driveDistance 2=driveAngle
+      volatile int state = 0;
+      
+      // pid variables
+      PID _motionPID;
+
+      const int DRIVE_SPEED = 60;
+      const int TURN_SPEED = 60;
+      
+      // distance driving variables
+      int _distancePulsesToGo = 0;
+      int direction = 1;
+      int distanceSpeed = DRIVE_SPEED * direction;
+      int lastCheckpoint = 0;
+
+      // angle driving variables
+      int _angleDegreesToGo = 0;
+      int _anglePulsesToGo = 0;
+      int angleSpeed = DRIVE_SPEED; // left wheel's speed when angle driving
+      volatile float compensation = 1.0; // the compensation to apply to encoder-based drive to reach 90º
+      
+  public:
+    Motion() : _motionPID(0, 0) {
+       _distancePulsesToGo = 0;
+       _anglePulsesToGo = 0;
+    }
+
+    void setup(float Kp, float Kd) {
+      _motionPID = PID(Kp, Kd);
+    }
+
+    // Distance driving
+
+    void driveDistance(int distance) {
+      // reset encoders
+      noInterrupts();
+      leftEncoderValue = 0;
+      rightEncoderValue = 0;
+      interrupts();
+
+      // calculate which way to go
+      direction = (distance >= 0) ? 1 : -1; // check if distance is positive - 1 for forward, -1 for back
+      distanceSpeed = DRIVE_SPEED * direction;
+
+      lastCheckpoint = 0; // reset the checkpoint
+      state = 1; // set the state
+
+      // and go!
+      _distancePulsesToGo = abs(calculateDistancePulses(distance)); // use ABS to ensure the number is always positive
+      setMotors(distanceSpeed, distanceSpeed); // start the motors
+    }
+
+    // NOTE: This function is written by AI
+    // -90 is left 90
+    void driveAngle(int deg) {
+      // reset encoders
+      noInterrupts();
+      leftEncoderValue = 0;
+      rightEncoderValue = 0;
+      interrupts();
+      
+      _anglePulsesToGo = calculateAnglePulses(abs(deg)); // Always positive
+      _angleDegreesToGo = abs(deg) * compensation; // Always positive
+      bool turnRight = (deg > 0);
+      
+      // Determine motor directions
+      if (turnRight) {
+        angleSpeed = TURN_SPEED * 1;
+      } else {
+        angleSpeed = TURN_SPEED * -1;
+      }
+      
+      updateDirection(deg); // update positioning direction
+      state = 2; // set the state
+      resetHeadingVariable(); // reset MPU heading
+      // and go!
+      setMotors(angleSpeed, -angleSpeed);  
+    }
+      
+    void update() {
+      if (state == 1) { // driving distance
+        int encoderAvg = abs(leftEncoderValue + rightEncoderValue) / 2; // use ABS to ensure the number is always positive
+        if (encoderAvg >= _distancePulsesToGo) { // moved enough
+          stop();
+          state = 0;
+        } else {
+          float adjustment = _motionPID.calculate(encoderDifference, 0);
+          setMotors(distanceSpeed, distanceSpeed + adjustment); 
+
+          /*int distanceTravelled = (int)pulsesToDistance(encoderAvg);
+          if ((pulsesToDistance(encoderAvg) > 0) && (distanceTravelled >= lastCheckpoint + 180)) { // moved more than 180
+            if (direction == 1) { // moving forward
+              lastCheckpoint = distanceTravelled;
+              updatePosition();
+            } else {
+              lastCheckpoint = distanceTravelled;
+              updatePositionBack();
+            }
+          }*/ // this is the loop that updates position
+        }
+      } else if (state == 2) { // driving angle
+        /*if (abs(heading) >= _angleDegreesToGo) {
+          stop();
+          state = 0;
+        }*/ // MPU method
+ 
+        long totalMoved = (abs(leftEncoderValue) + abs(rightEncoderValue)) / 2;
+        if (totalMoved >= _anglePulsesToGo) {
+          stop();
+          compensation = abs(heading) / abs(_angleDegreesToGo);
+          state = 0;
+        } // Encoder method
+      }
+    }
+
+    bool completed() {
+      if (state == 0) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+};
+
+// Gemini PD Controller
+// A class that returns the output of a PD controller
+// Initialize: Kp & Kd constants 
+// Calculate: sensor/encoder input, desired target
+// Example: PID motorPid(Kp, Kd)
+// motorPid.calculate(encoderDifference, 0)
+class PID {
+  private: 
+    float _oldError = 0;
+    float _KP;
+    float _KD;
+
+  public:
+
+    PID(float Kp, float Kd) {
+       _KP = Kp;
+       _KD = Kd;
+      }
+      
+    float calculate(float input, float target) {
+      float error = target - input;
+
+      float proportional = _KP * error;
+      float derivative = (error - _oldError) * _KD;
+
+      _oldError = error;
+  
+      return proportional + derivative;
+    }
+};
+
+#include "pid.h"
+#include "motion.h"
+#include "RPi_Pico_TimerInterrupt.h"
+
+// --- GLOBAL VARIABLES ---
+
+// Sensor values
+volatile int leftSensorValue = 0;
+volatile int frontSensorValue = 0;
+volatile int rightSensorValue = 0;
+
+int leftSensor[10];
+int frontSensor[10];
+int rightSensor[10];
+
+// Wall thresholds
+const int LEFT_GAP = 7;
+const int FRONT_WALL = 40;
+const int RIGHT_GAP = 6;
+
+// Encoder values
+volatile int leftEncoderValue = 0;
+volatile int rightEncoderValue = 0;
+volatile int encoderDifference = 0; // right - left
+
+// MPU values
+volatile float heading = 0.0;
+
+// PD controller values
+const float SENSOR_KP = 1.0;
+const float SENSOR_KD = 0.5;
+const int TARGET = 25;
+
+PID sensorPid(SENSOR_KP, SENSOR_KD);
+
+// Timer setup
+RPI_PICO_Timer ITimer(0);
+
+// Motion controller
+Motion motion; 
+// note: 0.9 and 0.5 are good Kp/Kd value for motion
+
+
+// Positioning variables
+int robotX = 0;
+int robotY = 0;
+int robotDir = 0;
+
+
+int mode; // 0 unconfigured 1 print sensors 2 test distance 3 test angle 4 wall follow 5 hardcoded 6 test MPU 7 solve maze
+
+// --- SETUP ---
+void setup() {
+
+  // Setup BLE Serial
+  Serial1.begin(57600);
+
+  // Initialize components
+  initMotors();
+  initButtons();
+  initLeds();
+  initEncoders();
+  //initMpu();
+  
+  delay(2000);
+
+  // start timer
+  float frequency = 500.0f;
+  ITimer.attachInterrupt(frequency, TimerHandler);
+
+  // get config details
+  Serial1.println("------GEMINI 2026.3.1------");
+  Serial1.println();
+
+  //int Kp = askForData("KP").toFloat();
+  //int Kd = askForData("KD").toFloat();
+  
+  motion.setup(0.9, 0.5); // 0.9, 0.5
+
+  Serial1.println("1: print sensors, 2: test distance, 3: test angle, 4: wall follow, 5: hardcoded, 6: test MPU, 7: solve maze");
+  mode = askForData("Select mode:").toInt();
+}
+
+// -- TIMER RUNNER --
+bool TimerHandler(struct repeating_timer *t)
+{
+  motion.update();
+  return true; // Return true to keep the timer repeating
+}
+
+void loop() {
+  //updateMpu();
+  switch(mode) {
+    case 1:
+      printSensors();
+      delay(200);
+      break;
+    case 2:
+      testDriveDistance(1000);
+      Serial1.println(robotY);
+      break;
+    case 3:
+      testDriveAngle(-90);
+      // printMpu();
+      break;
+    case 4:
+      wallFollow();
+      printPosition();
+      break;
+    case 5:
+      testHardCodedMaze();
+      break;
+    case 6:
+      printMpu();
+      delay(200);
+      break;
+    case 7:
+      mazeLoop();
+      printPosition();
+      break;
+  }
+};
+
+// -- SECOND CORE (USED FOR SENSORS & MPU) --
+void setup1() {
+  initSensors();
+  initMpu();
+  resetHeading();
+}
+
+void loop1() {
+  updateSensors();
+  updateMpu();
+};
+
+#define LEFT_BUTTON 15
+#define RIGHT_BUTTON 14
+
+void initButtons() {
+  pinMode(LEFT_BUTTON, INPUT_PULLUP);
+  pinMode(RIGHT_BUTTON, INPUT_PULLUP);
+}
+
+void waitForButton(int pin) {
+  while (digitalRead(pin) == HIGH); 
+}
+
+// Gemini config library
+// Exposes a function `askForData(prompt)` which can be used to set parameters thru BLE Serial
+// Can be used to tune Kp/Kd etc.
+
+String askForData(String prompt) {
+  Serial1.println(prompt); // print the display prompt
+
+  while (Serial1.available() == 0) {}; // wait for incoming data
+  String userInput = Serial1.readString(); // read the data
+  
+  return userInput;
+}
+
+// Gemini Encoders
+// Step 1. `initEncoders();` which sets up the pins and attaches interrupts
+// The, use variables `leftEncoderValue` and `rightEncoderValue` to access
+// Use `printEncoders();` to output the values in format L R
+// Includes function `calculateDistancePulses(mm)` to calculate how many pulses to travel
+// and `calculateAnglePulses(deg)` for angle
+// and `pulsesToDistance(pulses)` to reverse this
+// and `resetEncoders()` to set both values to 0
+
+#define ENCODER_LEFT_A 8
+#define ENCODER_LEFT_B 9
+
+#define ENCODER_RIGHT_A 7
+#define ENCODER_RIGHT_B 6
+
+void initEncoders() {
+  // Set pin mode
+  pinMode(ENCODER_LEFT_A, INPUT_PULLUP); 
+  pinMode(ENCODER_LEFT_B, INPUT_PULLUP);
+  pinMode(ENCODER_RIGHT_A, INPUT_PULLUP); 
+  pinMode(ENCODER_RIGHT_B, INPUT_PULLUP); 
+
+  attachInterrupt(digitalPinToInterrupt(ENCODER_LEFT_A), leftEncoderISR_A, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_LEFT_B), leftEncoderISR_B, CHANGE);
+  
+  attachInterrupt(digitalPinToInterrupt(ENCODER_RIGHT_A), rightEncoderISR_A, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_RIGHT_B), rightEncoderISR_B, CHANGE);
+}
+
+// ISRs to increment or decrement counts based on direction
+// --- LEFT ENCODER ---
+void leftEncoderISR_A() {
+  // When A changes: if A != B, we moved Forward (++)
+  if (digitalRead(ENCODER_LEFT_A) != digitalRead(ENCODER_LEFT_B)) {
+    leftEncoderValue++;
+  } else {
+    leftEncoderValue--;
+  }
+  encoderDifference = rightEncoderValue - leftEncoderValue;
+}
+
+void leftEncoderISR_B() {
+  // When B changes: if A == B, we moved Forward (++)
+  if (digitalRead(ENCODER_LEFT_A) == digitalRead(ENCODER_LEFT_B)) {
+    leftEncoderValue++;
+  } else {
+    leftEncoderValue--;
+  }
+  encoderDifference = rightEncoderValue - leftEncoderValue;
+}
+
+// --- RIGHT ENCODER ---
+void rightEncoderISR_A() {
+  if (digitalRead(ENCODER_RIGHT_A) != digitalRead(ENCODER_RIGHT_B)) {
+    rightEncoderValue++;
+  } else {
+    rightEncoderValue--;
+  }
+  encoderDifference = rightEncoderValue - leftEncoderValue;
+}
+
+void rightEncoderISR_B() {
+  if (digitalRead(ENCODER_RIGHT_A) == digitalRead(ENCODER_RIGHT_B)) {
+    rightEncoderValue++;
+  } else {
+    rightEncoderValue--;
+  }
+  encoderDifference = rightEncoderValue - leftEncoderValue;
+}
+
+// --- UTILITY FUNCTIONS ---
+
+void printEncoders() {
+  Serial1.print(leftEncoderValue);
+  Serial1.print(" ");
+  Serial1.print(rightEncoderValue);
+  Serial1.println();
+}
+
+const float PULSES_PER_MM = 5.9683106577;
+const float MM_PER_PULSE = 1.0 / PULSES_PER_MM;
+
+float calculateDistancePulses(int mm) {
+/* Wheel diameter: 32mm
+Wheel circumference: = π x 32 = 100.5309649149
+Encoder pulses per full rotation of backshaft: 12
+Motor gear ratio: 1:50
+Encoder pulses per full rotation of wheel: 12 * 50 = 600
+So every 600 pulses we go 100.5309mm
+Pulses per mm: 600 / 100.53096 = 5.9683106577
+*/
+  float compensation = 0.853; // human compensation
+  return (mm * PULSES_PER_MM * compensation); 
+}
+
+float pulsesToDistance(int pulses) {
+  return (pulses * MM_PER_PULSE); 
+}
+
+float calculateAnglePulses(int deg) {
+  /*
+  pulsesPerMm = 5.9683106577;
+  compensation = 0.853;
+
+  Inverse of count per mm is mm per count! (5.968... * 0.853) is 0.1964...
+  Wheel separation = 74.5mm
+
+  DEG_PER_COUNT = (360.0 * MM_PER_COUNT) / (PI * WHEEL_SEPARATION);
+
+  DEG_PER_COUNT = (360.0 * 0.1964) / (3.1415926 * 74.5);
+  = 0.3020910413
+
+  COUNT_PER_DEG = 1 / DEG_PER_COUNT
+  1 / 0.3020910413 = 3.3102603629
+  */
+  float compensation = 0.94; // 0.94 human compensation
+  return deg * 3.3102603629 * compensation;
+}
+
+void resetEncoders() {
+  leftEncoderValue = 0;
+  rightEncoderValue = 0;
+}
+
+// Gemini Floodfill module
+
+#include <queue>
+
+// --- DEFINITIONS ---
+
+// Queue setup
+struct Point {
+  uint8_t x;
+  uint8_t y;
+};
+
+std::queue<Point> q;
+
+// Cell structure
+struct Cell {
+  uint8_t x;
+  uint8_t y;
+  uint8_t cost;
+
+  bool walls[4];
+};
+
+
+// defining the maze
+const int MAZE_WIDTH = 3;
+const int MAZE_HEIGHT = 3;
+
+const uint8_t targetX = 2;
+const uint8_t targetY = 2;
+
+Cell maze[MAZE_WIDTH][MAZE_HEIGHT]; // in order x, y
+
+// --- FUNCTIONS ---
+
+// converts 0-360 direction to wall directions
+// 0→0, 90→1, 180→2, 270→3
+uint8_t convertDirection(int compassDirection) {
+  if (compassDirection == 0) {return 0;}
+  else if (compassDirection == 90) {return 1;}
+  else if (compassDirection == 180) {return 2;}
+  else if (compassDirection == 270) {return 3;}
+  else {return 0;}
+}
+
+// check if a cell exists in the maze
+bool cellExists(int x, int y) {
+  if ((x >= MAZE_WIDTH) || (x < 0) || (y >= MAZE_HEIGHT) || (y < 0)) { return false; }
+  else { return true; }
+}
+
+// sets all costs to 255 and sets the goal to 0
+void resetMaze() {
+  for(int i=0; i<MAZE_WIDTH; i++) {
+    for(int j=0; j<MAZE_HEIGHT; j++) {
+      maze[i][j].cost = 255;
+    }
+  }
+  maze[targetX][targetY].cost = 0; // set the goal cost to 0
+}
+
+// checks if a wall is present at x, y, wallDirection (0-3)
+bool checkWall(uint8_t x, uint8_t y, int wallDirection) {
+  return maze[x][y].walls[wallDirection];
+} // returns True is wall present
+
+// sets walls on both cells
+void setWall(uint8_t x, uint8_t y, int direction) {
+  uint8_t wallDirection = convertDirection(direction);
+  
+  maze[x][y].walls[wallDirection] = true;
+
+  uint8_t neighborWallX = x;
+  uint8_t neighborWallY = y;
+  uint8_t neighborWallDir;
+  
+  if (wallDirection == 0) {neighborWallY = y+1; neighborWallDir = 2;}
+  else if (wallDirection == 1) {neighborWallX = x+1; neighborWallDir = 3;}
+  else if (wallDirection == 2) {neighborWallY = y-1; neighborWallDir = 0;}
+  else if (wallDirection == 3) {neighborWallX = x-1; neighborWallDir = 1;}
+
+  if (cellExists(neighborWallX, neighborWallY)) {
+    maze[neighborWallX][neighborWallY].walls[neighborWallDir] = true;
+  }
+}
+
+void updateFlood() {
+  resetMaze();
+  
+  while(!q.empty()) q.pop(); // clear the queue
+
+  q.push({targetX, targetY}); // add the goal to the back of the queue
+  
+  while (!q.empty()) { 
+    Point currentExaminingCell = q.front();
+    q.pop(); // remove front element
+    
+    uint8_t x = currentExaminingCell.x;
+    uint8_t y = currentExaminingCell.y;
+
+    
+    for (int wallDirection = 0; wallDirection < 4; wallDirection++) { // for each direction
+      if (checkWall(x, y, wallDirection) == false) { // there is no wall
+        
+        // get neighbors of the current examining cell
+        uint8_t neighborWallX = x;
+        uint8_t neighborWallY = y;
+        
+        if (wallDirection == 0) {neighborWallY = y+1;}
+        else if (wallDirection == 1) {neighborWallX = x+1;}
+        else if (wallDirection == 2) {neighborWallY = y-1;}
+        else if (wallDirection == 3) {neighborWallX = x-1;}
+
+        if (cellExists(neighborWallX, neighborWallY) && maze[neighborWallX][neighborWallY].cost == 255) { // it has not already been costed
+          maze[neighborWallX][neighborWallY].cost = maze[x][y].cost + 1; // set it's cost to the currentCell + 1
+          q.push({neighborWallX, neighborWallY});
+        }
+      }
+    }
+  }
+}
+
+// --- MAZE SOLVING LOOP ---
+void mazeLoop() {
+  /*
+[x] Check walls 
+[x] Set walls based on checks
+[x] Reflood
+[x] LowestCostCell = 0; // north
+
+[x] For cell in neighbors
+[x] If cell.cost < lowestcostcell:
+[x]    Lowestcostcell = cell
+
+[x] Turn to the direction of LowestCostCell
+[x] Drive forward
+[x] Update position 
+
+
+   */
+
+  if (robotX == targetX && robotY == targetY) {
+    stop();
+    return;
+  }
+
+  if (leftSensorValue > LEFT_GAP) { // there's a wall on the left 
+    setWall(robotX, robotY, normalizeDirection(-90)); 
+  }
+
+  if (rightSensorValue > RIGHT_GAP) { // there's a wall on the right 
+    setWall(robotX, robotY, normalizeDirection(90)); 
+  }
+
+  if (frontSensorValue >= FRONT_WALL) { // wall in front
+    setWall(robotX, robotY, normalizeDirection(0)); 
+  }
+
+  updateFlood();
+
+  Cell lowestCostCell = maze[robotX][robotY]; // init with the current cell's cost
+  int lowestCostDirection = 0; // the cell with lowest cost's absolute direction
+
+  // check what the cheapest cell to go to is
+  for (int neighborIndex = 0; neighborIndex < 4; neighborIndex++) { // for each direction
+    uint8_t neighborX = robotX;
+    uint8_t neighborY = robotY;
+    int neighborDir;
+    
+    if (neighborIndex == 0) {neighborY = robotY+1; neighborDir = 0;}
+    else if (neighborIndex == 1) {neighborX = robotX+1; neighborDir = 90;}
+    else if (neighborIndex == 2) {neighborY = robotY-1; neighborDir = 180;}
+    else if (neighborIndex == 3) {neighborX = robotX-1; neighborDir = 270;}
+
+    if (cellExists(neighborX, neighborY)) {
+      Cell neighbor = maze[neighborX][neighborY];
+  
+      if (neighbor.cost < lowestCostCell.cost && !checkWall(robotX, robotY, convertDirection(neighborDir)))  { // the neighbor is the cheapest seen so far & there's no blocking wall
+        lowestCostCell = neighbor;
+        lowestCostDirection = neighborDir;
+      }
+    }
+  }
+
+  if (lowestCostCell.cost == maze[robotX][robotY].cost) { // same cost as current
+    stop(); // no valid move found
+    return;
+  }
+
+  // turn until facing the direction of the lowest cost cell (this part is written by AI)
+  int relative = (lowestCostDirection - robotDir + 360) % 360;
+  if (relative > 180) relative -= 360;
+  motion.driveAngle(relative);
+  while (!motion.completed()) {}
+
+  // drive to the next cell
+  motion.driveDistance(180);
+  while (!motion.completed()) {}
+  updatePosition();
+}
+
+#define LEFT_LED 20
+#define MIDDLE_LED 19
+#define RIGHT_LED 18
+#define MEZZ_RIGHT_LED 13
+
+void initLeds() {
+  pinMode(LEFT_LED, OUTPUT);
+  pinMode(MIDDLE_LED, OUTPUT);
+  pinMode(RIGHT_LED, OUTPUT);
+  pinMode(MEZZ_RIGHT_LED, OUTPUT);
+}
+
+void on(int pin) {
+  digitalWrite(pin, HIGH);
+}
+
+void off(int pin) {
+  digitalWrite(pin, LOW);
+}
+
+// Gemini Motors Abstractor
+// Step 1. `initMotors();` which sets up the pins and enables the driver
+// The, use `setMotors(left, right);` with speeds up to 256
+// Use `stop();` to stop
+
+// Motor Pins
+#define M_RIGHT_FORWARD   5
+#define M_RIGHT_BACKWARD   4
+
+#define M_LEFT_FORWARD   2
+#define M_LEFT_BACKWARD   3
+
+#define SLP    7
+
+void initMotors() {
+  pinMode(M_LEFT_FORWARD, OUTPUT);
+  pinMode(M_LEFT_BACKWARD, OUTPUT);
+  pinMode(M_RIGHT_FORWARD, OUTPUT);
+  pinMode(M_RIGHT_BACKWARD, OUTPUT);
+
+  pinMode(SLP, OUTPUT);
+
+  // enable DRV8833
+  digitalWrite(SLP, HIGH);
+}
+
+void setMotors(int left, int right) {
+  int MAX_SPEED = 256;
+
+  int absLeft = abs(left); // No matter if positive or negative, the correct 256 - speed can be done
+  int absRight = abs(right);
+  
+  // IF positive number, Set the forward speeds to max, and the reverse speed to max - target
+  // IF negative number, Set the backward speeds to max, and the forward speed to max - target
+
+  if (left >= 0) {
+    analogWrite(M_LEFT_FORWARD, MAX_SPEED);
+    analogWrite(M_LEFT_BACKWARD, MAX_SPEED - absLeft);
+  } 
+  else {
+    analogWrite(M_LEFT_FORWARD, MAX_SPEED - absLeft);
+    analogWrite(M_LEFT_BACKWARD, MAX_SPEED);
+  }
+
+  if (right >= 0) {
+    analogWrite(M_RIGHT_FORWARD, MAX_SPEED);
+    analogWrite(M_RIGHT_BACKWARD, MAX_SPEED - absRight);
+  } 
+  else {
+    analogWrite(M_RIGHT_FORWARD, MAX_SPEED - absRight);
+    analogWrite(M_RIGHT_BACKWARD, MAX_SPEED);
+  }
+
+  
+}
+
+void stop() {
+  analogWrite(M_LEFT_FORWARD, 0);
+  analogWrite(M_LEFT_BACKWARD, 0);
+  
+  analogWrite(M_RIGHT_FORWARD, 0);
+  analogWrite(M_RIGHT_BACKWARD, 0);
+}
+
+// Gemini MPU6050 module
+// `initMpu()` sets up the pins and I2C
+// The, use `updateMpu()` in an interrupt or core 2
+// Value is updated to float `heading`
+// To reset the heading from core 1, set `requestHeadingreset = true`
+// To reset the heading from core 2, call `resetHeading()`
+
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+#include <Wire.h>
+
+Adafruit_MPU6050 mpu;
+
+float gyroBiasZ = 0.0;
+unsigned long lastTime = 0;
+
+void initMpu() {
+  Wire1.setSDA(10);
+  Wire1.setSCL(11);
+  Wire1.begin();
+  Wire1.setClock(400000);
+
+  if (!mpu.begin(0x68, &Wire1)) {
+    Serial1.println("MPU6050 not found!");
+    while (1) delay(10);
+  }
+
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+  mpu.setFilterBandwidth(MPU6050_BAND_44_HZ);
+  Serial1.println("MPU INIT!");
+}
+
+void resetHeading() {
+  int samples = 500;
+  double sum = 0;
+  for (int i = 0; i < samples; i++) {
+    sensors_event_t accel, gyro, temp;
+    mpu.getEvent(&accel, &gyro, &temp);
+    sum += gyro.gyro.z;
+    delay(2);
+  }
+  gyroBiasZ = sum / samples;
+  heading = 0.0;
+  lastTime = micros(); 
+}
+
+void resetHeadingVariable() {
+  heading = 0.0;
+}
+
+void updateMpu() {
+  sensors_event_t accel, gyro, temp;
+  mpu.getEvent(&accel, &gyro, &temp);
+
+  unsigned long now = micros();
+  float dt = (now - lastTime) / 1000000.0;
+  lastTime = now;
+
+  float rateZ = (gyro.gyro.z - gyroBiasZ) * (180.0 / PI);
+  if (abs(rateZ) > 0.3) heading += rateZ * dt;
+}
+
+void printMpu() {
+  Serial1.print(heading);
+  Serial1.print("º");
+  Serial1.println();
+}
+
+// Gemini positioning module
+// `normalizeDirection()` allows the direction to be normalized
+// `updateDirection()` allows the direction to be normalized & set as `robotDir`
+// `updatePosition()` moves the robot forward 1 square, respecting direction
+// `updatePositionBack()` does the same but moves it back 1 square
+// `printPosition` prints the x, y, and direction to Serial1
+
+// normalizes turn direction to 0-360º
+int normalizeDirection(int turnDir) {
+  int newDirection = robotDir + turnDir;
+
+  newDirection = newDirection % 360;
+
+  if (newDirection < 0) {
+    newDirection = 360 + newDirection;
+  }
+  
+  return newDirection;
+}
+
+// sets the normalized direction
+void updateDirection(int turnDir) {
+   robotDir = normalizeDirection(turnDir);
+}
+
+// Move forward by 1, respecting direction
+void updatePosition() {
+  switch(robotDir) {
+    case 0:
+      robotY = robotY + 1;
+      break;
+    case 90:
+      robotX = robotX + 1;
+      break;
+    case 180:
+      robotY = robotY - 1;
+      break;
+    case 270:
+      robotX = robotX - 1;
+      break;
+  }
+}
+
+void updatePositionBack() {
+  switch(robotDir) {
+    case 0:
+      robotY = robotY - 1;
+      break;
+    case 90:
+      robotX = robotX - 1;
+      break;
+    case 180:
+      robotY = robotY + 1;
+      break;
+    case 270:
+      robotX = robotX + 1;
+      break;
+  }
+}
+
+void printPosition() {
+  Serial1.print("X: ");
+  Serial1.print(robotX);
+  Serial1.print(" Y: ");
+  Serial1.print(robotY);
+  Serial1.print(" D: ");
+  Serial1.print(robotDir);
+  Serial1.println();
+}
+
+// Gemini Sensors
+// Step 1. `initSensors();` which sets up the pins
+// The, use `updateSensors();` in core 2 or in an interrupt
+// Use the values from `leftSensorValue`, `frontSensorValue`, and `rightSensorValue`
+// Use `printSensors();` to output the values in format L F R
+
+// Emitters
+#define E_LEFT_RIGHT   22
+#define E_FRONT   21
+
+#define S_LEFT 28
+#define S_FRONT 27
+#define S_RIGHT 26
+
+void initSensors() {
+  pinMode(E_LEFT_RIGHT, OUTPUT);
+  pinMode(E_FRONT, OUTPUT);
+  
+  pinMode(S_LEFT, INPUT);
+  pinMode(S_FRONT, INPUT);
+  pinMode(S_RIGHT, INPUT);
+}
+
+int f_unlit = 0;
+int r_unlit = 0;
+int l_unlit = 0;
+
+void updateSensors() {
+  // --- 1. READ SIDE SENSORS ---
+  l_unlit = analogRead(S_LEFT);
+  r_unlit = analogRead(S_RIGHT);
+  
+  digitalWrite(E_LEFT_RIGHT, HIGH);
+  delayMicroseconds(75); 
+
+  // Calculate difference and ensure it's not negative
+  leftSensorValue = max(0, (int)analogRead(S_LEFT) - l_unlit);
+  rightSensorValue = max(0, (int)analogRead(S_RIGHT) - r_unlit);
+
+  digitalWrite(E_LEFT_RIGHT, LOW);
+
+  delayMicroseconds(75); 
+
+  // --- 2. READ FRONT SENSOR ---
+  f_unlit = analogRead(S_FRONT);
+
+  digitalWrite(E_FRONT, HIGH);
+  delayMicroseconds(75);
+  
+  frontSensorValue = max(0, (int)analogRead(S_FRONT) - f_unlit);
+  
+  digitalWrite(E_FRONT, LOW);
+
+
+  
+  // Update the rolling average lists
+  //updateLeftSensorList(leftSensorValue);
+  //updateFrontSensorList(frontSensorValue);
+  //updateRightSensorList(rightSensorValue);
+
+  //int leftSum = 0;
+  //int frontSum = 0;
+  //int rightSum = 0;
+
+  //for (int i = 0; i < 10; i++) {
+  //  leftSum = leftSum + leftSensor[i];
+  //  frontSum = frontSum + frontSensor[i];
+  //  rightSum = rightSum + rightSensor[i];
+  //}
+
+  //leftSensorValue = leftSum / 10;
+  //frontSensorValue = frontSum  / 10;
+  //rightSensorValue = rightSum / 10;
+}
+
+void printSensors() {
+  Serial1.print(leftSensorValue);
+  Serial1.print(" ");
+  Serial1.print(frontSensorValue);
+  Serial1.print(" ");
+  Serial1.print(rightSensorValue);
+  Serial1.println();
+}
+
+void updateLeftSensorList(int value) {
+  for (int i = 0; i < 9; i++) {
+    leftSensor[i] = leftSensor[i+1];
+  }
+  leftSensor[9] = value; // New value at the end
+}
+
+void updateFrontSensorList(int value) {
+  for (int i = 0; i < 9; i++) {
+      frontSensor[i] = frontSensor[i+1];
+  }
+
+  frontSensor[9] = value;
+}
+
+
+void updateRightSensorList(int value) {
+  for (int i = 0; i < 9; i++) {
+      rightSensor[i] = rightSensor[i+1];
+  }
+
+  rightSensor[9] = value;
+}
+
+void testSensorPD(int target) {
+  float adj = sensorPid.calculate(leftSensorValue, target);
+  setMotors(60, 60 + adj);
+}
+
+
+void testDriveDistance(int distance) {
+  motion.driveDistance(distance);
+  while(!motion.completed()) {};
+  delay(2000);
+}
+
+void testDriveAngle(int angle) {
+  motion.driveAngle(angle);
+  while(!motion.completed()) {};
+  delay(2000);
+}
+
+void testEncoders() {
+  printEncoders();
+  delay(200);
+}
+
+void testHardCodedMaze() {
+  testDriveDistance(180);
+  testDriveDistance(180);
+
+  testDriveAngle(90);
+  testDriveDistance(180);
+  testDriveAngle(90);
+  
+  testDriveDistance(180);
+  testDriveAngle(-90);
+  testDriveDistance(180);
+
+  testDriveAngle(-90);
+  testDriveDistance(180);
+  testDriveAngle(90);
+  testDriveAngle(90);
+  
+  testDriveDistance(180);
+  testDriveDistance(180);
+}
+
+enum WallFollowState {
+  FOLLOW_WALL,
+  SP_TO_CENTER,
+  TURNING_LEFT,
+  DRIVING_TO_NEXT_CELL,
+  TURNING_RIGHT
+}; 
+
+WallFollowState wfState = FOLLOW_WALL;
+int angleToGo = 0;
+
+void wallFollow() {
+  switch(wfState) {
+    case FOLLOW_WALL: { // just looking around
+      if (leftSensorValue <= LEFT_GAP) { // gap on the left
+        motion.driveDistance(150); // start driving to the middle of the cell
+        wfState = SP_TO_CENTER; 
+        on(MEZZ_RIGHT_LED);
+      }
+
+      else if (frontSensorValue >= FRONT_WALL) { // wall in front
+        delay(200);
+        motion.driveAngle(-90); // start turning right
+        wfState = TURNING_RIGHT;
+      }
+
+      else {
+        float adj = sensorPid.calculate(leftSensorValue, TARGET);
+        setMotors(60 - adj, 60 + adj);
+      }
+      
+      break;
+    }
+
+    case SP_TO_CENTER: {
+      if (motion.completed()) { // once driving is done
+        delay(200);
+        motion.driveAngle(90); // turn left
+        wfState = TURNING_LEFT;
+        off(MEZZ_RIGHT_LED);
+      }
+      
+      break;
+    }
+
+    case TURNING_LEFT: {
+      if (motion.completed()) { // once driving is done
+        delay(200);
+        wfState = FOLLOW_WALL; // go back to exploring
+      }
+      
+      break;
+    }
+
+    case TURNING_RIGHT: {
+      if (motion.completed()) { // once driving is done
+        delay(200);
+        Serial.println("Done turning right");
+        wfState = FOLLOW_WALL; // go back to exploring
+      }
+      
+      break;
+    }
+  }
+}
+
