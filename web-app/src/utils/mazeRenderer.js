@@ -38,6 +38,18 @@ export function calculateLayout(canvasWidth, canvasHeight, mazeWidth, mazeHeight
 }
 
 /**
+ * Convert maze Y coordinate to canvas Y (maze origin is bottom-left)
+ * @param {number} mazeY - Y coordinate in maze (0 = bottom)
+ * @param {number} mazeHeight - Total maze height
+ * @param {Layout} layout - Layout dimensions
+ * @returns {number} Canvas Y coordinate
+ */
+function mazeYToCanvasY(mazeY, mazeHeight, layout) {
+  // Flip Y so that maze Y=0 is at the bottom of the canvas
+  return layout.offsetY + (mazeHeight - 1 - mazeY) * layout.cellSize;
+}
+
+/**
  * Draw the maze grid
  * @param {CanvasRenderingContext2D} ctx - Canvas context
  * @param {Layout} layout - Layout dimensions
@@ -86,9 +98,9 @@ export function drawWalls(ctx, layout, cells) {
     for (let y = 0; y < mazeHeight; y++) {
       const cell = cells[x][y];
       const px = layout.offsetX + x * layout.cellSize;
-      const py = layout.offsetY + y * layout.cellSize;
+      const py = mazeYToCanvasY(y, mazeHeight, layout);
       
-      // North wall (index 0)
+      // North wall (index 0) - visually at top of cell
       if (cell.w[0]) {
         ctx.beginPath();
         ctx.moveTo(px, py);
@@ -96,7 +108,7 @@ export function drawWalls(ctx, layout, cells) {
         ctx.stroke();
       }
       
-      // East wall (index 1)
+      // East wall (index 1) - visually at right of cell
       if (cell.w[1]) {
         ctx.beginPath();
         ctx.moveTo(px + layout.cellSize, py);
@@ -104,7 +116,7 @@ export function drawWalls(ctx, layout, cells) {
         ctx.stroke();
       }
       
-      // South wall (index 2)
+      // South wall (index 2) - visually at bottom of cell
       if (cell.w[2]) {
         ctx.beginPath();
         ctx.moveTo(px, py + layout.cellSize);
@@ -112,7 +124,7 @@ export function drawWalls(ctx, layout, cells) {
         ctx.stroke();
       }
       
-      // West wall (index 3)
+      // West wall (index 3) - visually at left of cell
       if (cell.w[3]) {
         ctx.beginPath();
         ctx.moveTo(px, py);
@@ -167,7 +179,7 @@ export function drawCosts(ctx, layout, cells, targetX, targetY, showCosts = true
     for (let y = 0; y < mazeHeight; y++) {
       const cell = cells[x][y];
       const px = layout.offsetX + x * layout.cellSize;
-      const py = layout.offsetY + y * layout.cellSize;
+      const py = mazeYToCanvasY(y, mazeHeight, layout);
       
       // Fill cell background with cost color
       ctx.fillStyle = getCostColor(cell.c, maxCost);
@@ -201,10 +213,11 @@ export function drawCosts(ctx, layout, cells, targetX, targetY, showCosts = true
  * @param {number} rx - Robot X coordinate
  * @param {number} ry - Robot Y coordinate
  * @param {number} rd - Robot direction (0, 90, 180, 270)
+ * @param {number} mazeHeight - Maze height for coordinate conversion
  */
-export function drawRobot(ctx, layout, rx, ry, rd) {
+export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight) {
   const px = layout.offsetX + rx * layout.cellSize + layout.cellSize / 2;
-  const py = layout.offsetY + ry * layout.cellSize + layout.cellSize / 2;
+  const py = mazeYToCanvasY(ry, mazeHeight, layout) + layout.cellSize / 2;
   const radius = layout.cellSize * 0.3;
   
   // Draw robot circle
@@ -214,20 +227,23 @@ export function drawRobot(ctx, layout, rx, ry, rd) {
   ctx.fill();
   
   // Draw direction indicator (triangle)
-  const angle = (rd * Math.PI) / 180;
-  const tipX = px + Math.cos(angle - Math.PI / 2) * radius;
-  const tipY = py + Math.sin(angle - Math.PI / 2) * radius;
+  // In maze coordinates: 0=North(+Y), 90=East(+X), 180=South(-Y), 270=West(-X)
+  // Canvas angles: 0=East(+X), PI/2=South(+Y), PI=West(-X), -PI/2=North(-Y)
+  // Convert: canvasAngle = (90 - mazeDir) in degrees, then to radians
+  const canvasAngle = ((90 - rd) * Math.PI) / 180;
+  const tipX = px + Math.cos(canvasAngle) * radius;
+  const tipY = py - Math.sin(canvasAngle) * radius;
   
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
   ctx.moveTo(tipX, tipY);
   ctx.lineTo(
-    px + Math.cos(angle - Math.PI / 2 + 2.5) * radius * 0.5,
-    py + Math.sin(angle - Math.PI / 2 + 2.5) * radius * 0.5
+    px + Math.cos(canvasAngle + 2.5) * radius * 0.5,
+    py - Math.sin(canvasAngle + 2.5) * radius * 0.5
   );
   ctx.lineTo(
-    px + Math.cos(angle - Math.PI / 2 - 2.5) * radius * 0.5,
-    py + Math.sin(angle - Math.PI / 2 - 2.5) * radius * 0.5
+    px + Math.cos(canvasAngle - 2.5) * radius * 0.5,
+    py - Math.sin(canvasAngle - 2.5) * radius * 0.5
   );
   ctx.closePath();
   ctx.fill();
@@ -259,7 +275,7 @@ export function renderMaze(ctx, mazeState, settings = { showCosts: true, showWal
     drawWalls(ctx, layout, mazeState.c);
   }
   
-  drawRobot(ctx, layout, mazeState.rx, mazeState.ry, mazeState.rd);
+  drawRobot(ctx, layout, mazeState.rx, mazeState.ry, mazeState.rd, mazeState.h);
 }
 
 export default {
