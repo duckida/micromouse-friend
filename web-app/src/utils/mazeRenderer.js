@@ -19,7 +19,7 @@
  * @returns {Layout} Layout dimensions
  */
 export function calculateLayout(canvasWidth, canvasHeight, mazeWidth, mazeHeight) {
-  const padding = 20;
+  const padding = 24;
   const availableWidth = canvasWidth - 2 * padding;
   const availableHeight = canvasHeight - 2 * padding;
   
@@ -39,25 +39,16 @@ export function calculateLayout(canvasWidth, canvasHeight, mazeWidth, mazeHeight
 
 /**
  * Convert maze Y coordinate to canvas Y (maze origin is bottom-left)
- * @param {number} mazeY - Y coordinate in maze (0 = bottom)
- * @param {number} mazeHeight - Total maze height
- * @param {Layout} layout - Layout dimensions
- * @returns {number} Canvas Y coordinate
  */
 function mazeYToCanvasY(mazeY, mazeHeight, layout) {
-  // Flip Y so that maze Y=0 is at the bottom of the canvas
   return layout.offsetY + (mazeHeight - 1 - mazeY) * layout.cellSize;
 }
 
 /**
- * Draw the maze grid
- * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {Layout} layout - Layout dimensions
- * @param {number} mazeWidth - Maze width in cells
- * @param {number} mazeHeight - Maze height in cells
+ * Draw the maze grid with rounded corners
  */
 export function drawGrid(ctx, layout, mazeWidth, mazeHeight) {
-  ctx.strokeStyle = '#cccccc';
+  ctx.strokeStyle = '#e4e4e7';
   ctx.lineWidth = 1;
   
   // Draw vertical lines
@@ -81,18 +72,28 @@ export function drawGrid(ctx, layout, mazeWidth, mazeHeight) {
 
 /**
  * Draw walls on the maze
- * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {Layout} layout - Layout dimensions
- * @param {import('./telemetryParser.js').Cell[][]} cells - Cell array
  */
 export function drawWalls(ctx, layout, cells) {
   if (!cells || cells.length === 0) return;
 
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 4;
-  
   const mazeWidth = cells.length;
   const mazeHeight = cells[0]?.length || 0;
+
+  // Draw outer border first
+  ctx.strokeStyle = '#18181b';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  const bx = layout.offsetX;
+  const by = layout.offsetY;
+  const bw = layout.gridWidth;
+  const bh = layout.gridHeight;
+  
+  ctx.strokeRect(bx, by, bw, bh);
+
+  // Draw inner walls
+  ctx.lineWidth = 4;
 
   for (let x = 0; x < mazeWidth; x++) {
     for (let y = 0; y < mazeHeight; y++) {
@@ -136,27 +137,7 @@ export function drawWalls(ctx, layout, cells) {
 }
 
 /**
- * Get color for cost value
- * @param {number} cost - Cost value (0-255)
- * @param {number} maxCost - Maximum cost value
- * @returns {string} HSL color string
- */
-export function getCostColor(cost, maxCost = 255) {
-  if (cost === 255) return '#f0f0f0'; // Unexplored
-  
-  const normalized = Math.min(cost / maxCost, 1);
-  const hue = (1 - normalized) * 240; // Blue (240) to Red (0)
-  return `hsl(${hue}, 70%, 85%)`;
-}
-
-/**
- * Draw floodfill costs on cells
- * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {Layout} layout - Layout dimensions
- * @param {import('./telemetryParser.js').Cell[][]} cells - Cell array
- * @param {number} targetX - Target X coordinate
- * @param {number} targetY - Target Y coordinate
- * @param {boolean} showCosts - Whether to show cost values
+ * Draw floodfill costs on cells - purple mono font, no background colors
  */
 export function drawCosts(ctx, layout, cells, targetX, targetY, showCosts = true) {
   if (!cells || cells.length === 0) return;
@@ -164,86 +145,130 @@ export function drawCosts(ctx, layout, cells, targetX, targetY, showCosts = true
   const mazeWidth = cells.length;
   const mazeHeight = cells[0]?.length || 0;
 
-  // Find max cost for normalization
-  let maxCost = 0;
-  for (let x = 0; x < mazeWidth; x++) {
-    for (let y = 0; y < mazeHeight; y++) {
-      const cost = cells[x][y].c;
-      if (cost !== 255 && cost > maxCost) {
-        maxCost = cost;
-      }
-    }
-  }
-
   for (let x = 0; x < mazeWidth; x++) {
     for (let y = 0; y < mazeHeight; y++) {
       const cell = cells[x][y];
       const px = layout.offsetX + x * layout.cellSize;
       const py = mazeYToCanvasY(y, mazeHeight, layout);
       
-      // Fill cell background with cost color
-      ctx.fillStyle = getCostColor(cell.c, maxCost);
-      ctx.fillRect(px + 1, py + 1, layout.cellSize - 2, layout.cellSize - 2);
-      
-      // Highlight target cell
+      // Highlight target cell with subtle purple background
       if (x === targetX && y === targetY) {
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
-        ctx.fillRect(px + 1, py + 1, layout.cellSize - 2, layout.cellSize - 2);
+        ctx.fillStyle = 'rgba(139, 92, 246, 0.15)';
+        ctx.beginPath();
+        ctx.roundRect(px + 2, py + 2, layout.cellSize - 4, layout.cellSize - 4, 4);
+        ctx.fill();
       }
 
       // Draw cost text if enabled
       if (showCosts) {
-        ctx.fillStyle = '#333333';
-        const fontSize = Math.max(10, Math.min(layout.cellSize / 3, 24));
-        ctx.font = `${fontSize}px Arial`;
+        const costText = cell.c === 255 ? '?' : cell.c.toString();
+        
+        // Larger font size, purple color, mono font
+        const fontSize = Math.max(14, Math.min(layout.cellSize * 0.4, 32));
+        ctx.font = `600 ${fontSize}px 'JetBrains Mono', monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        
+        // Purple color for costs
+        ctx.fillStyle = cell.c === 255 ? '#a1a1aa' : '#7c3aed';
+        
         const textX = px + layout.cellSize / 2;
         const textY = py + layout.cellSize / 2;
-        ctx.fillText(cell.c.toString(), textX, textY);
+        ctx.fillText(costText, textX, textY);
       }
     }
   }
 }
 
 /**
+ * Draw robot path history
+ */
+export function drawPath(ctx, layout, pathHistory, mazeHeight) {
+  if (!pathHistory || pathHistory.length < 2) return;
+
+  ctx.strokeStyle = 'rgba(139, 92, 246, 0.4)';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.setLineDash([8, 4]);
+
+  ctx.beginPath();
+
+  for (let i = 0; i < pathHistory.length; i++) {
+    const point = pathHistory[i];
+    const px = layout.offsetX + point.x * layout.cellSize + layout.cellSize / 2;
+    const py = mazeYToCanvasY(point.y, mazeHeight, layout) + layout.cellSize / 2;
+
+    if (i === 0) {
+      ctx.moveTo(px, py);
+    } else {
+      ctx.lineTo(px, py);
+    }
+  }
+
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Draw path dots
+  for (const point of pathHistory) {
+    const px = layout.offsetX + point.x * layout.cellSize + layout.cellSize / 2;
+    const py = mazeYToCanvasY(point.y, mazeHeight, layout) + layout.cellSize / 2;
+
+    ctx.fillStyle = 'rgba(139, 92, 246, 0.6)';
+    ctx.beginPath();
+    ctx.arc(px, py, 4, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+}
+
+/**
  * Draw robot on the maze
- * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {Layout} layout - Layout dimensions
- * @param {number} rx - Robot X coordinate
- * @param {number} ry - Robot Y coordinate
- * @param {number} rd - Robot direction (0, 90, 180, 270)
- * @param {number} mazeHeight - Maze height for coordinate conversion
  */
 export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight) {
   const px = layout.offsetX + rx * layout.cellSize + layout.cellSize / 2;
   const py = mazeYToCanvasY(ry, mazeHeight, layout) + layout.cellSize / 2;
-  const radius = layout.cellSize * 0.3;
+  const radius = layout.cellSize * 0.35;
   
-  // Draw robot circle
-  ctx.fillStyle = '#ff0000';
+  // Outer glow
+  ctx.shadowColor = 'rgba(139, 92, 246, 0.5)';
+  ctx.shadowBlur = 12;
+  
+  // Draw robot circle with gradient
+  const gradient = ctx.createRadialGradient(px - radius * 0.3, py - radius * 0.3, 0, px, py, radius);
+  gradient.addColorStop(0, '#a78bfa');
+  gradient.addColorStop(1, '#7c3aed');
+  
+  ctx.fillStyle = gradient;
   ctx.beginPath();
   ctx.arc(px, py, radius, 0, 2 * Math.PI);
   ctx.fill();
   
-  // Draw direction indicator (triangle)
-  // In maze coordinates: 0=North(+Y), 90=East(+X), 180=South(-Y), 270=West(-X)
-  // Canvas angles: 0=East(+X), PI/2=South(+Y), PI=West(-X), -PI/2=North(-Y)
-  // Convert: canvasAngle = (90 - mazeDir) in degrees, then to radians
-  const canvasAngle = ((90 - rd) * Math.PI) / 180;
-  const tipX = px + Math.cos(canvasAngle) * radius;
-  const tipY = py - Math.sin(canvasAngle) * radius;
+  // Reset shadow
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
   
-  ctx.fillStyle = '#ffffff';
+  // Draw white border
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(px, py, radius, 0, 2 * Math.PI);
+  ctx.stroke();
+  
+  // Draw direction indicator (triangle pointing in maze direction)
+  const canvasAngle = ((90 - rd) * Math.PI) / 180;
+  const tipX = px + Math.cos(canvasAngle) * radius * 0.8;
+  const tipY = py - Math.sin(canvasAngle) * radius * 0.8;
+  
+  ctx.fillStyle = 'white';
   ctx.beginPath();
   ctx.moveTo(tipX, tipY);
   ctx.lineTo(
-    px + Math.cos(canvasAngle + 2.5) * radius * 0.5,
-    py - Math.sin(canvasAngle + 2.5) * radius * 0.5
+    px + Math.cos(canvasAngle + 2.2) * radius * 0.4,
+    py - Math.sin(canvasAngle + 2.2) * radius * 0.4
   );
   ctx.lineTo(
-    px + Math.cos(canvasAngle - 2.5) * radius * 0.5,
-    py - Math.sin(canvasAngle - 2.5) * radius * 0.5
+    px + Math.cos(canvasAngle - 2.2) * radius * 0.4,
+    py - Math.sin(canvasAngle - 2.2) * radius * 0.4
   );
   ctx.closePath();
   ctx.fill();
@@ -251,25 +276,21 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight) {
 
 /**
  * Render the complete maze
- * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {import('./telemetryParser.js').MazeState} mazeState - Maze state to render
- * @param {Object} settings - Render settings
- * @param {boolean} settings.showCosts - Whether to show cost values
- * @param {boolean} settings.showWalls - Whether to show walls
  */
-export function renderMaze(ctx, mazeState, settings = { showCosts: true, showWalls: true }) {
+export function renderMaze(ctx, mazeState, settings = { showCosts: true, showWalls: true }, pathHistory = []) {
   if (!mazeState) return;
 
   const canvas = ctx.canvas;
   const layout = calculateLayout(canvas.width, canvas.height, mazeState.w, mazeState.h);
 
-  // Clear canvas
+  // Clear canvas with white background
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Draw in order: grid, costs, walls, robot
+  // Draw in order: grid, costs, path, walls, robot
   drawGrid(ctx, layout, mazeState.w, mazeState.h);
   drawCosts(ctx, layout, mazeState.c, mazeState.tx, mazeState.ty, settings.showCosts);
+  drawPath(ctx, layout, pathHistory, mazeState.h);
   
   if (settings.showWalls) {
     drawWalls(ctx, layout, mazeState.c);
@@ -282,8 +303,8 @@ export default {
   calculateLayout,
   drawGrid,
   drawWalls,
-  getCostColor,
   drawCosts,
+  drawPath,
   drawRobot,
   renderMaze
 };

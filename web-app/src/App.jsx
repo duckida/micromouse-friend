@@ -38,6 +38,7 @@ function App() {
     connectionState,
     mazeState,
     timeoutWarning,
+    pathHistory,
     connect,
     disconnect,
     send,
@@ -73,7 +74,7 @@ function App() {
       <main className="app-main">
         <div className="app-content">
           <div className="visualization-area">
-            <MazeCanvas mazeState={mazeState} settings={settings} />
+            <MazeCanvas mazeState={mazeState} settings={settings} pathHistory={pathHistory} />
           </div>
 
           <div className="controls-area">

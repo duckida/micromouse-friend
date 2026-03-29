@@ -1,139 +1,146 @@
 .connection-panel {
-  padding: 16px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  margin-bottom: 16px;
+  padding: 20px;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--gray-200);
 }
 
 .connection-status {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
 .status-indicator {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: #ccc;
+  background-color: var(--gray-300);
+  box-shadow: 0 0 0 3px var(--gray-100);
 }
 
 .status-connected {
-  background-color: #4caf50;
+  background-color: #22c55e;
+  box-shadow: 0 0 0 3px #dcfce7;
 }
 
 .status-connecting {
-  background-color: #ff9800;
+  background-color: var(--purple-500);
+  box-shadow: 0 0 0 3px var(--purple-100);
   animation: pulse 1.5s infinite;
 }
 
 .status-error {
-  background-color: #f44336;
+  background-color: #ef4444;
+  box-shadow: 0 0 0 3px #fee2e2;
 }
 
 .status-disconnected {
-  background-color: #9e9e9e;
+  background-color: var(--gray-400);
+  box-shadow: 0 0 0 3px var(--gray-100);
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
 }
 
 .status-text {
-  font-weight: 500;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--gray-800);
 }
 
 .connection-error {
-  background-color: #ffebee;
-  border: 1px solid #f44336;
-  border-radius: 4px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
+  background: linear-gradient(135deg, #fef2f2 0%, #fff 100%);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .error-icon {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .error-message {
-  color: #c62828;
+  color: #b91c1c;
   font-size: 13px;
+  font-weight: 500;
 }
 
 .connection-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .connect-button,
-.disconnect-button {
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 500;
+.disconnect-button,
+.solve-button {
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  min-width: 120px;
-  transition: background-color 0.2s, transform 0.1s;
+  transition: all 0.2s ease;
+  flex: 1;
+  min-width: 100px;
 }
 
 .connect-button {
-  background-color: #2196f3;
+  background: linear-gradient(135deg, var(--purple-500) 0%, var(--purple-600) 100%);
   color: white;
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
 }
 
 .connect-button:hover:not(:disabled) {
-  background-color: #1976d2;
+  background: linear-gradient(135deg, var(--purple-600) 0%, var(--purple-700) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(124, 58, 237, 0.4);
 }
 
 .connect-button:disabled {
-  background-color: #90caf9;
+  background: var(--gray-300);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
 .disconnect-button {
-  background-color: #f44336;
+  background: linear-gradient(135deg, var(--gray-500) 0%, var(--gray-600) 100%);
   color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .disconnect-button:hover {
-  background-color: #d32f2f;
+  background: linear-gradient(135deg, var(--gray-600) 0%, var(--gray-700) 100%);
+  transform: translateY(-1px);
 }
 
 .solve-button {
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 500;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  min-width: 120px;
-  transition: background-color 0.2s, transform 0.1s;
-  background-color: #4caf50;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: white;
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
 }
 
 .solve-button:hover {
-  background-color: #388e3c;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(34, 197, 94, 0.4);
 }
 
-/* Touch-friendly sizing */
 @media (max-width: 768px) {
   .connect-button,
   .disconnect-button,
   .solve-button {
-    padding: 16px 32px;
-    font-size: 18px;
-    min-width: 140px;
+    padding: 16px 20px;
+    font-size: 16px;
   }
 }

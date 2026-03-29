@@ -11,13 +11,14 @@ import './MazeCanvas.css';
  * @property {Object} settings - Render settings
  * @property {boolean} settings.showCosts - Whether to show cost values
  * @property {boolean} settings.showWalls - Whether to show walls
+ * @property {Array} pathHistory - Array of {x, y} points visited
  */
 
 /**
  * Maze canvas component
  * @param {MazeCanvasProps} props - Component props
  */
-export function MazeCanvas({ mazeState, settings }) {
+export function MazeCanvas({ mazeState, settings, pathHistory = [] }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const animationFrameRef = useRef(null);
@@ -74,7 +75,7 @@ export function MazeCanvas({ mazeState, settings }) {
         ctx.save();
         ctx.scale(1/dpr, 1/dpr);
         
-        renderMaze(ctx, mazeState, settings);
+        renderMaze(ctx, mazeState, settings, pathHistory);
         
         ctx.restore();
       } else {
@@ -96,7 +97,7 @@ export function MazeCanvas({ mazeState, settings }) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [mazeState, settings]);
+  }, [mazeState, settings, pathHistory]);
 
   return (
     <div className="maze-canvas-container" ref={containerRef}>

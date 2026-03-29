@@ -28,6 +28,7 @@ export function useSerial() {
   
   const [mazeState, setMazeState] = useState(null);
   const [timeoutWarning, setTimeoutWarning] = useState(false);
+  const [pathHistory, setPathHistory] = useState([]);
   
   const connectionManagerRef = useRef(null);
 
@@ -78,13 +79,23 @@ export function useSerial() {
         // onPacket callback
         (parsed) => {
           setMazeState(prevState => {
-            // Handle dimension changes
+            // Handle dimension changes - reset path history
             if (prevState && (prevState.w !== parsed.w || prevState.h !== parsed.h)) {
-              // Reinitialize with new dimensions
+              setPathHistory([{ x: parsed.rx, y: parsed.ry }]);
               return parsed;
             }
             return parsed;
           });
+          
+          // Track path history
+          setPathHistory(prev => {
+            const lastPoint = prev[prev.length - 1];
+            if (!lastPoint || lastPoint.x !== parsed.rx || lastPoint.y !== parsed.ry) {
+              return [...prev, { x: parsed.rx, y: parsed.ry }];
+            }
+            return prev;
+          });
+          
           setTimeoutWarning(false);
         },
         // onStateChange callback
@@ -117,6 +128,7 @@ export function useSerial() {
     connectionState,
     mazeState,
     timeoutWarning,
+    pathHistory,
     connect,
     disconnect,
     send,
