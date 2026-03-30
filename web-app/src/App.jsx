@@ -59,7 +59,42 @@ function App() {
     send,
     isSupported
   } = useSerial();
-  
+
+  // Step navigation: -1 = live, 0+ = step index
+  const [currentStep, setCurrentStep] = useState(-1);
+
+  // Auto-follow live when not navigating
+  useEffect(() => {
+    if (currentStep >= 0 && currentStep >= stepHistory.length) {
+      setCurrentStep(-1);
+    }
+  }, [stepHistory.length, currentStep]);
+
+  // Compute display state
+  const displayState = currentStep >= 0 && currentStep < stepHistory.length
+    ? stepHistory[currentStep]
+    : mazeState;
+
+  const handlePrev = useCallback(() => {
+    if (stepHistory.length === 0) return;
+    setCurrentStep(prev => {
+      if (prev <= 0) return 0;
+      return prev - 1;
+    });
+  }, [stepHistory.length]);
+
+  const handleNext = useCallback(() => {
+    setCurrentStep(prev => {
+      if (prev < 0) return -1;
+      if (prev >= stepHistory.length - 1) return -1;
+      return prev + 1;
+    });
+  }, [stepHistory.length]);
+
+  const handleGoLive = useCallback(() => {
+    setCurrentStep(-1);
+  }, []);
+
   // Start maze solving mode
   const handleStartSolve = useCallback(() => {
     send('7\n');
@@ -102,6 +137,8 @@ function App() {
     setBackdropImage(null);
   }, []);
 
+  const isLive = currentStep < 0;
+
   return (
     <div className="app">
       <header className="app-header">
@@ -112,11 +149,25 @@ function App() {
         <div className="app-content">
           <div className="visualization-area">
             <MazeCanvas 
-              mazeState={mazeState} 
+              mazeState={displayState} 
               settings={settings} 
               pathHistory={pathHistory}
               backdropImage={backdropImage}
             />
+
+            {stepHistory.length > 0 && (
+              <div className="step-nav">
+                <button className="step-nav-btn" onClick={handlePrev} disabled={currentStep <= 0}>
+                  &lt;
+                </button>
+                <span className="step-nav-label" onClick={!isLive ? handleGoLive : undefined}>
+                  {isLive ? 'LIVE' : `${currentStep + 1} / ${stepHistory.length}`}
+                </span>
+                <button className="step-nav-btn" onClick={handleNext} disabled={isLive}>
+                  &gt;
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="controls-area">
@@ -130,10 +181,9 @@ function App() {
 
             <div className="panels-row">
               <InfoPanel
-                mazeState={mazeState}
+                mazeState={displayState}
                 connectionState={connectionState}
                 timeoutWarning={timeoutWarning}
-                stepHistory={stepHistory}
               />
 
               <SettingsPanel

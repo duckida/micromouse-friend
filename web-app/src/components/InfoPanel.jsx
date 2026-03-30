@@ -10,7 +10,6 @@ import './InfoPanel.css';
  * @property {Object} connectionState - Connection state
  * @property {string} connectionState.status - Connection status
  * @property {boolean} timeoutWarning - Whether to show timeout warning
- * @property {Array} stepHistory - Step history array
  */
 
 /**
@@ -32,7 +31,7 @@ function getDirectionName(degrees) {
  * Info panel component
  * @param {InfoPanelProps} props - Component props
  */
-export function InfoPanel({ mazeState, connectionState, timeoutWarning, stepHistory = [] }) {
+export function InfoPanel({ mazeState, connectionState, timeoutWarning }) {
   return (
     <div className="info-panel">
       <h3 className="info-title">Robot Info</h3>
@@ -73,23 +72,6 @@ export function InfoPanel({ mazeState, connectionState, timeoutWarning, stepHist
               {mazeState.w} × {mazeState.h}
             </span>
           </div>
-
-          {stepHistory.length > 0 && (
-            <div className="step-history">
-              <h4 className="step-history-title">Step History ({stepHistory.length})</h4>
-              <div className="step-history-list">
-                {stepHistory.map((step, i) => (
-                  <div key={i} className="step-row">
-                    <span className="step-num">#{i}</span>
-                    <span className="step-pos">({step.x},{step.y})</span>
-                    <span className="step-sensors">
-                      F:{step.sf} L:{step.sl} R:{step.sr}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       ) : (
         <div className="info-empty">

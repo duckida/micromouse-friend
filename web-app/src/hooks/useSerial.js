@@ -93,16 +93,16 @@ export function useSerial() {
 
           // Full maze state packet
           setMazeState(prevState => {
-            // Handle dimension changes - reset path history
+            // Handle dimension changes - reset histories
             if (prevState && (prevState.w !== parsed.w || prevState.h !== parsed.h)) {
               setPathHistory([{ x: parsed.rx, y: parsed.ry }]);
-              setStepHistory([{ x: parsed.rx, y: parsed.ry, rd: parsed.rd, sf: 0, sl: 0, sr: 0 }]);
+              setStepHistory([]);
               return parsed;
             }
             return parsed;
           });
           
-          // Track path history and step history
+          // Track path history
           setPathHistory(prev => {
             const lastPoint = prev[prev.length - 1];
             if (!lastPoint || lastPoint.x !== parsed.rx || lastPoint.y !== parsed.ry) {
@@ -111,11 +111,12 @@ export function useSerial() {
             return prev;
           });
 
+          // Snapshot maze state on position change
           setStepHistory(prev => {
             const lastStep = prev[prev.length - 1];
-            if (!lastStep || lastStep.x !== parsed.rx || lastStep.y !== parsed.ry) {
+            if (!lastStep || lastStep.rx !== parsed.rx || lastStep.ry !== parsed.ry) {
               const s = currentSensors.current;
-              return [...prev, { x: parsed.rx, y: parsed.ry, rd: parsed.rd, sf: s.sf, sl: s.sl, sr: s.sr }];
+              return [...prev, { ...parsed, sf: s.sf, sl: s.sl, sr: s.sr }];
             }
             return prev;
           });
