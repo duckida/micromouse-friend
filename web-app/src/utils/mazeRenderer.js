@@ -228,7 +228,10 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
   const px = layout.offsetX + rx * layout.cellSize + layout.cellSize / 2;
   const py = mazeYToCanvasY(ry, mazeHeight, layout) + layout.cellSize / 2;
   const radius = layout.cellSize * 0.35;
-  
+
+  // Canvas angle: 0=right, PI/2=down, PI=left, -PI/2=up
+  const angle = ((90 - rd) * Math.PI) / 180;
+
   // Sensor thresholds (matching Arduino wall detection)
   const FRONT_WALL_THRESHOLD = 40;
   const LEFT_WALL_THRESHOLD = 7;
@@ -236,16 +239,15 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
 
   // Draw sensor indicator arcs if sensor data is available
   if (sensors && (sensors.sf !== undefined || sensors.sl !== undefined || sensors.sr !== undefined)) {
-    const canvasAngle = ((90 - rd) * Math.PI) / 180;
-    const arcWidth = 0.45; // Half-width of each arc in radians
-    const arcOuter = radius + layout.cellSize * 0.12;
+    const arcWidth = 0.45;
+    const arcOuter = radius + layout.cellSize * 0.15;
     const arcInner = radius + 2;
-    const fontSize = Math.max(9, Math.min(layout.cellSize * 0.16, 14));
+    const fontSize = Math.max(9, Math.min(layout.cellSize * 0.18, 14));
 
     const sensorData = [
-      { angle: canvasAngle, value: sensors.sf, threshold: FRONT_WALL_THRESHOLD, label: 'F' },
-      { angle: canvasAngle + Math.PI / 2, value: sensors.sl, threshold: LEFT_WALL_THRESHOLD, label: 'L' },
-      { angle: canvasAngle - Math.PI / 2, value: sensors.sr, threshold: RIGHT_WALL_THRESHOLD, label: 'R' }
+      { angle: angle, value: sensors.sf, threshold: FRONT_WALL_THRESHOLD },
+      { angle: angle + Math.PI / 2, value: sensors.sl, threshold: LEFT_WALL_THRESHOLD },
+      { angle: angle - Math.PI / 2, value: sensors.sr, threshold: RIGHT_WALL_THRESHOLD }
     ];
 
     for (const sensor of sensorData) {
@@ -276,46 +278,41 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
     }
   }
 
-  // Outer glow
-  ctx.shadowColor = 'rgba(139, 92, 246, 0.5)';
-  ctx.shadowBlur = 12;
-  
-  // Draw robot circle with gradient
-  const gradient = ctx.createRadialGradient(px - radius * 0.3, py - radius * 0.3, 0, px, py, radius);
-  gradient.addColorStop(0, '#a78bfa');
-  gradient.addColorStop(1, '#7c3aed');
-  
-  ctx.fillStyle = gradient;
+  // Light purple outer glow ring (like the image)
+  const glowRadius = radius + layout.cellSize * 0.15;
+  ctx.fillStyle = 'rgba(209, 196, 255, 0.25)';
+  ctx.beginPath();
+  ctx.arc(px, py, glowRadius, 0, 2 * Math.PI);
+  ctx.fill();
+
+  // Draw robot circle - solid purple fill (like the image)
+  ctx.fillStyle = '#8b5cf6';
   ctx.beginPath();
   ctx.arc(px, py, radius, 0, 2 * Math.PI);
   ctx.fill();
-  
-  // Reset shadow
-  ctx.shadowColor = 'transparent';
-  ctx.shadowBlur = 0;
-  
-  // Draw white border
-  ctx.strokeStyle = 'white';
+
+  // Draw light border
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(px, py, radius, 0, 2 * Math.PI);
   ctx.stroke();
-  
+
   // Draw direction indicator (triangle pointing in maze direction)
-  const canvasAngle = ((90 - rd) * Math.PI) / 180;
-  const tipX = px + Math.cos(canvasAngle) * radius * 0.8;
-  const tipY = py - Math.sin(canvasAngle) * radius * 0.8;
-  
+  // Use canvas angles consistently: py + sin() NOT py - sin()
+  const tipX = px + Math.cos(angle) * radius * 0.8;
+  const tipY = py + Math.sin(angle) * radius * 0.8;
+
   ctx.fillStyle = 'white';
   ctx.beginPath();
   ctx.moveTo(tipX, tipY);
   ctx.lineTo(
-    px + Math.cos(canvasAngle + 2.2) * radius * 0.4,
-    py - Math.sin(canvasAngle + 2.2) * radius * 0.4
+    px + Math.cos(angle + 2.2) * radius * 0.4,
+    py + Math.sin(angle + 2.2) * radius * 0.4
   );
   ctx.lineTo(
-    px + Math.cos(canvasAngle - 2.2) * radius * 0.4,
-    py - Math.sin(canvasAngle - 2.2) * radius * 0.4
+    px + Math.cos(angle - 2.2) * radius * 0.4,
+    py + Math.sin(angle - 2.2) * radius * 0.4
   );
   ctx.closePath();
   ctx.fill();
