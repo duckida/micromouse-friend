@@ -242,7 +242,7 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
     const arcWidth = 0.45;
     const arcOuter = radius + layout.cellSize * 0.15;
     const arcInner = radius + 2;
-    const fontSize = Math.max(9, Math.min(layout.cellSize * 0.18, 14));
+    const fontSize = Math.max(14, Math.min(layout.cellSize * 0.3, 28));
 
     const sensorData = [
       { angle: angle, value: sensors.sf, threshold: FRONT_WALL_THRESHOLD },
@@ -266,13 +266,20 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
       ctx.fill();
 
       // Value label outside the arc
-      const labelDist = arcOuter + fontSize * 0.8;
+      const labelDist = arcOuter + fontSize * 1.2;
       const labelX = px + Math.cos(sensor.angle) * labelDist;
       const labelY = py + Math.sin(sensor.angle) * labelDist;
 
       ctx.font = `700 ${fontSize}px 'JetBrains Mono', monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+
+      // Text outline for readability
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(sensor.value.toString(), labelX, labelY);
+
       ctx.fillStyle = wallDetected ? '#dc2626' : '#16a34a';
       ctx.fillText(sensor.value.toString(), labelX, labelY);
     }
