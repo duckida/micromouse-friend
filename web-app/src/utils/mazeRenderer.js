@@ -232,12 +232,50 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
   // Canvas angle: 0=right, PI/2=down, PI=left, -PI/2=up
   const angle = ((90 - rd) * Math.PI) / 180;
 
+  // Light purple outer glow ring (like the image)
+  const glowRadius = radius + layout.cellSize * 0.15;
+  ctx.fillStyle = 'rgba(209, 196, 255, 0.25)';
+  ctx.beginPath();
+  ctx.arc(px, py, glowRadius, 0, 2 * Math.PI);
+  ctx.fill();
+
+  // Draw robot circle - solid purple fill (like the image)
+  ctx.fillStyle = '#8b5cf6';
+  ctx.beginPath();
+  ctx.arc(px, py, radius, 0, 2 * Math.PI);
+  ctx.fill();
+
+  // Draw light border
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(px, py, radius, 0, 2 * Math.PI);
+  ctx.stroke();
+
+  // Draw direction indicator (triangle pointing in maze direction)
+  const tipX = px + Math.cos(angle) * radius * 0.8;
+  const tipY = py - Math.sin(angle) * radius * 0.8;
+
+  ctx.fillStyle = 'white';
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(
+    px + Math.cos(angle + 2.2) * radius * 0.4,
+    py - Math.sin(angle + 2.2) * radius * 0.4
+  );
+  ctx.lineTo(
+    px + Math.cos(angle - 2.2) * radius * 0.4,
+    py - Math.sin(angle - 2.2) * radius * 0.4
+  );
+  ctx.closePath();
+  ctx.fill();
+
   // Sensor thresholds (matching Arduino wall detection)
   const FRONT_WALL_THRESHOLD = 40;
   const LEFT_WALL_THRESHOLD = 7;
   const RIGHT_WALL_THRESHOLD = 6;
 
-  // Draw sensor indicator arcs if sensor data is available
+  // Draw sensor indicator arcs on top of robot
   if (sensors && (sensors.sf !== undefined || sensors.sl !== undefined || sensors.sr !== undefined)) {
     const arcWidth = 0.45;
     const arcOuter = radius + layout.cellSize * 0.15;
@@ -284,44 +322,6 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
       ctx.fillText(sensor.value.toString(), labelX, labelY);
     }
   }
-
-  // Light purple outer glow ring (like the image)
-  const glowRadius = radius + layout.cellSize * 0.15;
-  ctx.fillStyle = 'rgba(209, 196, 255, 0.25)';
-  ctx.beginPath();
-  ctx.arc(px, py, glowRadius, 0, 2 * Math.PI);
-  ctx.fill();
-
-  // Draw robot circle - solid purple fill (like the image)
-  ctx.fillStyle = '#8b5cf6';
-  ctx.beginPath();
-  ctx.arc(px, py, radius, 0, 2 * Math.PI);
-  ctx.fill();
-
-  // Draw light border
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(px, py, radius, 0, 2 * Math.PI);
-  ctx.stroke();
-
-  // Draw direction indicator (triangle pointing in maze direction)
-  const tipX = px + Math.cos(angle) * radius * 0.8;
-  const tipY = py - Math.sin(angle) * radius * 0.8;
-
-  ctx.fillStyle = 'white';
-  ctx.beginPath();
-  ctx.moveTo(tipX, tipY);
-  ctx.lineTo(
-    px + Math.cos(angle + 2.2) * radius * 0.4,
-    py - Math.sin(angle + 2.2) * radius * 0.4
-  );
-  ctx.lineTo(
-    px + Math.cos(angle - 2.2) * radius * 0.4,
-    py - Math.sin(angle - 2.2) * radius * 0.4
-  );
-  ctx.closePath();
-  ctx.fill();
 }
 
 /**
