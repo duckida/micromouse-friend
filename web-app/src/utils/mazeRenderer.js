@@ -278,8 +278,8 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
   // Draw sensor indicator arcs on top of robot
   if (sensors && (sensors.sf !== undefined || sensors.sl !== undefined || sensors.sr !== undefined)) {
     const arcWidth = 0.45;
-    const arcOuter = radius + layout.cellSize * 0.15;
-    const arcInner = radius + 2;
+    const arcOuter = radius + layout.cellSize * 0.25;
+    const arcInner = radius + 4;
     const fontSize = Math.max(14, Math.min(layout.cellSize * 0.3, 28));
 
     const sensorData = [
@@ -295,13 +295,18 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
       const startAngle = sensor.angle - arcWidth;
       const endAngle = sensor.angle + arcWidth;
 
-      // Arc fill
+      // Arc fill - opaque so it covers robot edge
       ctx.beginPath();
       ctx.arc(px, py, arcOuter, startAngle, endAngle);
       ctx.arc(px, py, arcInner, endAngle, startAngle, true);
       ctx.closePath();
-      ctx.fillStyle = wallDetected ? 'rgba(239, 68, 68, 0.85)' : 'rgba(34, 197, 94, 0.85)';
+      ctx.fillStyle = wallDetected ? '#ef4444' : '#22c55e';
       ctx.fill();
+
+      // Arc border
+      ctx.strokeStyle = wallDetected ? '#dc2626' : '#16a34a';
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
       // Value label outside the arc
       const labelDist = arcOuter + fontSize * 1.2;

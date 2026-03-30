@@ -29,8 +29,10 @@ export function useSerial() {
   const [mazeState, setMazeState] = useState(null);
   const [timeoutWarning, setTimeoutWarning] = useState(false);
   const [pathHistory, setPathHistory] = useState([]);
+  const [stepHistory, setStepHistory] = useState([]);
   
   const connectionManagerRef = useRef(null);
+  const currentSensors = useRef({ sf: 0, sl: 0, sr: 0 });
 
   // Initialize connection manager
   useEffect(() => {
@@ -80,6 +82,7 @@ export function useSerial() {
         (parsed) => {
           // Wall state packet: merge sensor data into existing maze state
           if ('sf' in parsed && !('w' in parsed)) {
+            currentSensors.current = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
             setMazeState(prevState => {
               if (!prevState) return prevState;
               return { ...prevState, sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
@@ -93,16 +96,26 @@ export function useSerial() {
             // Handle dimension changes - reset path history
             if (prevState && (prevState.w !== parsed.w || prevState.h !== parsed.h)) {
               setPathHistory([{ x: parsed.rx, y: parsed.ry }]);
+              setStepHistory([{ x: parsed.rx, y: parsed.ry, rd: parsed.rd, sf: 0, sl: 0, sr: 0 }]);
               return parsed;
             }
             return parsed;
           });
           
-          // Track path history
+          // Track path history and step history
           setPathHistory(prev => {
             const lastPoint = prev[prev.length - 1];
             if (!lastPoint || lastPoint.x !== parsed.rx || lastPoint.y !== parsed.ry) {
               return [...prev, { x: parsed.rx, y: parsed.ry }];
+            }
+            return prev;
+          });
+
+          setStepHistory(prev => {
+            const lastStep = prev[prev.length - 1];
+            if (!lastStep || lastStep.x !== parsed.rx || lastStep.y !== parsed.ry) {
+              const s = currentSensors.current;
+              return [...prev, { x: parsed.rx, y: parsed.ry, rd: parsed.rd, sf: s.sf, sl: s.sl, sr: s.sr }];
             }
             return prev;
           });
@@ -140,6 +153,7 @@ export function useSerial() {
     mazeState,
     timeoutWarning,
     pathHistory,
+    stepHistory,
     connect,
     disconnect,
     send,

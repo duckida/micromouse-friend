@@ -53,6 +53,7 @@ function App() {
     mazeState,
     timeoutWarning,
     pathHistory,
+    stepHistory,
     connect,
     disconnect,
     send,
@@ -132,6 +133,7 @@ function App() {
                 mazeState={mazeState}
                 connectionState={connectionState}
                 timeoutWarning={timeoutWarning}
+                stepHistory={stepHistory}
               />
 
               <SettingsPanel

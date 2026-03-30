@@ -84,7 +84,7 @@ export function ConnectionPanel({
           <>
             <button 
               className="disconnect-button"
-              onClick={onDisconnect}
+              onClick={() => window.location.reload()}
             >
               Disconnect
             </button>
