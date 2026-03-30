@@ -299,20 +299,19 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
   ctx.stroke();
 
   // Draw direction indicator (triangle pointing in maze direction)
-  // Use canvas angles consistently: py + sin() NOT py - sin()
   const tipX = px + Math.cos(angle) * radius * 0.8;
-  const tipY = py + Math.sin(angle) * radius * 0.8;
+  const tipY = py - Math.sin(angle) * radius * 0.8;
 
   ctx.fillStyle = 'white';
   ctx.beginPath();
   ctx.moveTo(tipX, tipY);
   ctx.lineTo(
     px + Math.cos(angle + 2.2) * radius * 0.4,
-    py + Math.sin(angle + 2.2) * radius * 0.4
+    py - Math.sin(angle + 2.2) * radius * 0.4
   );
   ctx.lineTo(
     px + Math.cos(angle - 2.2) * radius * 0.4,
-    py + Math.sin(angle - 2.2) * radius * 0.4
+    py - Math.sin(angle - 2.2) * radius * 0.4
   );
   ctx.closePath();
   ctx.fill();
