@@ -78,15 +78,17 @@ function App() {
   const handlePrev = useCallback(() => {
     if (stepHistory.length === 0) return;
     setCurrentStep(prev => {
-      if (prev <= 0) return 0;
+      if (prev < 0) return stepHistory.length - 1; // from live, go to last step
+      if (prev === 0) return 0;
       return prev - 1;
     });
   }, [stepHistory.length]);
 
   const handleNext = useCallback(() => {
+    if (stepHistory.length === 0) return;
     setCurrentStep(prev => {
-      if (prev < 0) return -1;
-      if (prev >= stepHistory.length - 1) return -1;
+      if (prev < 0) return -1; // already live
+      if (prev >= stepHistory.length - 1) return -1; // go to live
       return prev + 1;
     });
   }, [stepHistory.length]);
@@ -157,13 +159,13 @@ function App() {
 
             {stepHistory.length > 0 && (
               <div className="step-nav">
-                <button className="step-nav-btn" onClick={handlePrev} disabled={currentStep <= 0}>
+                <button className="step-nav-btn" onClick={handlePrev} disabled={stepHistory.length === 0 || currentStep === 0}>
                   &lt;
                 </button>
                 <span className="step-nav-label" onClick={!isLive ? handleGoLive : undefined}>
                   {isLive ? 'LIVE' : `${currentStep + 1} / ${stepHistory.length}`}
                 </span>
-                <button className="step-nav-btn" onClick={handleNext} disabled={isLive}>
+                <button className="step-nav-btn" onClick={handleNext} disabled={stepHistory.length === 0}>
                   &gt;
                 </button>
               </div>
