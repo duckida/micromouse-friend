@@ -10,6 +10,13 @@
  */
 
 /**
+ * @typedef {Object} WallState
+ * @property {number} sf - Front sensor value
+ * @property {number} sl - Left sensor value
+ * @property {number} sr - Right sensor value
+ */
+
+/**
  * @typedef {Object} MazeState
  * @property {number} w - Width
  * @property {number} h - Height
@@ -19,17 +26,26 @@
  * @property {number} ry - Robot Y
  * @property {number} rd - Robot direction (0, 90, 180, 270)
  * @property {Cell[][]} c - Cells indexed as c[x][y]
+ * @property {number} [sf] - Front sensor value
+ * @property {number} [sl] - Left sensor value
+ * @property {number} [sr] - Right sensor value
  */
 
 /**
  * Parse a JSON telemetry packet
  * @param {string} packet - JSON string to parse
- * @returns {MazeState|null} Parsed maze state or null if invalid
+ * @returns {MazeState|WallState|null} Parsed maze state, wall state, or null if invalid
  */
 export function parsePacket(packet) {
   try {
     const data = JSON.parse(packet);
     
+    // Wall state packet: has sf/sl/sr but no maze fields
+    if (isWallState(data)) {
+      return data;
+    }
+    
+    // Full maze state packet
     if (!validateMazeState(data)) {
       return null;
     }
@@ -39,6 +55,20 @@ export function parsePacket(packet) {
     console.error('JSON parsing error:', error);
     return null;
   }
+}
+
+/**
+ * Check if a parsed object is a wall state packet
+ * @param {any} data - Object to check
+ * @returns {boolean} True if wall state packet
+ */
+function isWallState(data) {
+  if (!data || typeof data !== 'object') return false;
+  if (!('sf' in data) || !('sl' in data) || !('sr' in data)) return false;
+  if ('w' in data || 'h' in data || 'c' in data) return false;
+  if (typeof data.sf !== 'number' || typeof data.sl !== 'number' || typeof data.sr !== 'number') return false;
+  if (data.sf < 0 || data.sl < 0 || data.sr < 0) return false;
+  return true;
 }
 
 /**
@@ -188,7 +218,10 @@ export function createEmptyMazeState(width = 3, height = 3) {
     rx: 0,
     ry: 0,
     rd: 0,
-    c: cells
+    c: cells,
+    sf: 0,
+    sl: 0,
+    sr: 0
   };
 }
 

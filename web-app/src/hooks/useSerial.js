@@ -78,6 +78,17 @@ export function useSerial() {
       await manager.connect(
         // onPacket callback
         (parsed) => {
+          // Wall state packet: merge sensor data into existing maze state
+          if ('sf' in parsed && !('w' in parsed)) {
+            setMazeState(prevState => {
+              if (!prevState) return prevState;
+              return { ...prevState, sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
+            });
+            setTimeoutWarning(false);
+            return;
+          }
+
+          // Full maze state packet
           setMazeState(prevState => {
             // Handle dimension changes - reset path history
             if (prevState && (prevState.w !== parsed.w || prevState.h !== parsed.h)) {

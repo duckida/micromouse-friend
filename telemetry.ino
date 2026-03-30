@@ -10,6 +10,9 @@ extern int robotY;
 extern int robotDir;
 extern const uint8_t targetX;
 extern const uint8_t targetY;
+extern volatile int frontSensorValue;
+extern volatile int leftSensorValue;
+extern volatile int rightSensorValue;
 
 // Initialize Serial1 if not already initialized
 void initTelemetry() {
@@ -78,4 +81,20 @@ void sendMazeState() {
 
   // Close array and object, add newline
   Serial1.println("]}");
+}
+
+// Send wall sensor state as JSON over Serial1
+// Call this after updating walls to report current sensor readings
+void sendWallState() {
+  if (!Serial1) {
+    return;
+  }
+
+  Serial1.print("{\"sf\":");
+  Serial1.print(frontSensorValue);
+  Serial1.print(",\"sl\":");
+  Serial1.print(leftSensorValue);
+  Serial1.print(",\"sr\":");
+  Serial1.print(rightSensorValue);
+  Serial1.println("}");
 }

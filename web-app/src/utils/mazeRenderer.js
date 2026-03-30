@@ -222,13 +222,60 @@ export function drawPath(ctx, layout, pathHistory, mazeHeight) {
 }
 
 /**
- * Draw robot on the maze
+ * Draw robot on the maze with sensor indicators
  */
-export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight) {
+export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
   const px = layout.offsetX + rx * layout.cellSize + layout.cellSize / 2;
   const py = mazeYToCanvasY(ry, mazeHeight, layout) + layout.cellSize / 2;
   const radius = layout.cellSize * 0.35;
   
+  // Sensor thresholds (matching Arduino wall detection)
+  const FRONT_WALL_THRESHOLD = 40;
+  const LEFT_WALL_THRESHOLD = 7;
+  const RIGHT_WALL_THRESHOLD = 6;
+
+  // Draw sensor indicator arcs if sensor data is available
+  if (sensors && (sensors.sf !== undefined || sensors.sl !== undefined || sensors.sr !== undefined)) {
+    const canvasAngle = ((90 - rd) * Math.PI) / 180;
+    const arcWidth = 0.45; // Half-width of each arc in radians
+    const arcOuter = radius + layout.cellSize * 0.12;
+    const arcInner = radius + 2;
+    const fontSize = Math.max(9, Math.min(layout.cellSize * 0.16, 14));
+
+    const sensorData = [
+      { angle: canvasAngle, value: sensors.sf, threshold: FRONT_WALL_THRESHOLD, label: 'F' },
+      { angle: canvasAngle + Math.PI / 2, value: sensors.sl, threshold: LEFT_WALL_THRESHOLD, label: 'L' },
+      { angle: canvasAngle - Math.PI / 2, value: sensors.sr, threshold: RIGHT_WALL_THRESHOLD, label: 'R' }
+    ];
+
+    for (const sensor of sensorData) {
+      if (sensor.value === undefined) continue;
+
+      const wallDetected = sensor.value >= sensor.threshold;
+      const startAngle = sensor.angle - arcWidth;
+      const endAngle = sensor.angle + arcWidth;
+
+      // Arc fill
+      ctx.beginPath();
+      ctx.arc(px, py, arcOuter, startAngle, endAngle);
+      ctx.arc(px, py, arcInner, endAngle, startAngle, true);
+      ctx.closePath();
+      ctx.fillStyle = wallDetected ? 'rgba(239, 68, 68, 0.85)' : 'rgba(34, 197, 94, 0.85)';
+      ctx.fill();
+
+      // Value label outside the arc
+      const labelDist = arcOuter + fontSize * 0.8;
+      const labelX = px + Math.cos(sensor.angle) * labelDist;
+      const labelY = py + Math.sin(sensor.angle) * labelDist;
+
+      ctx.font = `700 ${fontSize}px 'JetBrains Mono', monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = wallDetected ? '#dc2626' : '#16a34a';
+      ctx.fillText(sensor.value.toString(), labelX, labelY);
+    }
+  }
+
   // Outer glow
   ctx.shadowColor = 'rgba(139, 92, 246, 0.5)';
   ctx.shadowBlur = 12;
@@ -345,7 +392,11 @@ export function renderMaze(ctx, mazeState, settings = { showCosts: true, showWal
     drawWalls(ctx, layout, mazeState.c);
   }
   
-  drawRobot(ctx, layout, mazeState.rx, mazeState.ry, mazeState.rd, mazeState.h);
+  drawRobot(ctx, layout, mazeState.rx, mazeState.ry, mazeState.rd, mazeState.h, {
+    sf: mazeState.sf,
+    sl: mazeState.sl,
+    sr: mazeState.sr
+  });
 }
 
 export default {

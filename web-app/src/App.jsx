@@ -104,8 +104,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1 className="app-title">Micromouse Visualizer</h1>
-        <p className="app-subtitle">Real-time maze visualization</p>
+        <h1 className="app-title">mouse friend</h1>
       </header>
 
       <main className="app-main">
@@ -146,10 +145,6 @@ function App() {
           </div>
         </div>
       </main>
-
-      <footer className="app-footer">
-        <p>Connect to HC-05 Bluetooth module to view live telemetry</p>
-      </footer>
     </div>
   );
 }
