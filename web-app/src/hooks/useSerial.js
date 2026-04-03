@@ -129,6 +129,12 @@ export function useSerial() {
           if (state.status === ConnectionState.DISCONNECTED) {
             setTimeoutWarning(false);
           }
+          if (state.status === ConnectionState.ERROR) {
+            const msg = (state.errorMessage || '').toLowerCase();
+            if (msg.includes('port is already in use') || msg.includes('unexpected error')) {
+              window.location.reload();
+            }
+          }
         }
       );
     } catch (error) {
