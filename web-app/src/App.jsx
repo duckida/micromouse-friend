@@ -63,12 +63,6 @@ function App() {
 
   // Step navigation: -1 = live, 0+ = step index
   const [currentStep, setCurrentStep] = useState(-1);
-  
-  // Sensing point within current cell (0, 1, 2)
-  const [currentSensingPoint, setCurrentSensingPoint] = useState(0);
-
-  // Auto-follow live when not navigating
-  // (using currentStep < 0 directly in JSX)
 
   // Compute display state
   const displayState = currentStep >= 0 && currentStep < stepHistory.length
@@ -77,64 +71,45 @@ function App() {
   
   // Get current sensing point data
   const currentSensingPoints = displayState?.sensingPoints || [null, null, null];
-  const activeSensingPoint = currentSensingPoints[currentSensingPoint] || null;
   
-  // Merge active sensing point into display state for robot display
-  const canvasState = activeSensingPoint 
-    ? { ...displayState, sf: activeSensingPoint.sf, sl: activeSensingPoint.sl, sr: activeSensingPoint.sr }
-    : displayState;
+  // For now, use latest available sensor readings
+  const canvasState = displayState;
 
   const handlePrev = useCallback(() => {
     if (stepHistory.length === 0) return;
     
-    // If live, go to last cell, last sensing point
+    // If live, go to last cell
     if (currentStep < 0) {
       setCurrentStep(stepHistory.length - 1);
-      setCurrentSensingPoint(2);
       return;
     }
     
-    // If at first cell + first sensing point, stay there
-    if (currentStep === 0 && currentSensingPoint === 0) return;
+    // If at first cell, stay there
+    if (currentStep === 0) return;
     
-    // If at first sensing point, go to previous cell (last sensing point)
-    if (currentSensingPoint === 0) {
-      setCurrentStep(prev => prev - 1);
-      setCurrentSensingPoint(2);
-    } else {
-      setCurrentSensingPoint(prev => prev - 1);
-    }
-  }, [stepHistory.length, currentSensingPoint, currentStep]);
+    setCurrentStep(prev => prev - 1);
+  }, [stepHistory.length, currentStep]);
 
   const handleNext = useCallback(() => {
     if (stepHistory.length === 0) return;
     
-    // If live, go to first cell, first sensing point
+    // If live, go to first cell
     if (currentStep < 0) {
       setCurrentStep(0);
-      setCurrentSensingPoint(0);
       return;
     }
     
-    // If at last cell + last sensing point, go to live
-    if (currentStep === stepHistory.length - 1 && currentSensingPoint === 2) {
+    // If at last cell, go to live
+    if (currentStep === stepHistory.length - 1) {
       setCurrentStep(-1);
-      setCurrentSensingPoint(0);
       return;
     }
     
-    // If at last sensing point, go to next cell (first sensing point)
-    if (currentSensingPoint === 2) {
-      setCurrentStep(prev => prev + 1);
-      setCurrentSensingPoint(0);
-    } else {
-      setCurrentSensingPoint(prev => prev + 1);
-    }
-  }, [stepHistory.length, currentSensingPoint, currentStep]);
+    setCurrentStep(prev => prev + 1);
+  }, [stepHistory.length, currentStep]);
 
   const handleGoLive = useCallback(() => {
     setCurrentStep(-1);
-    setCurrentSensingPoint(0);
   }, []);
 
   // Start maze solving mode
@@ -193,28 +168,19 @@ function App() {
               settings={settings} 
               pathHistory={pathHistory}
               backdropImage={backdropImage}
-              activeSensingPoint={currentStep >= 0 ? currentSensingPoint : null}
             />
 
             {stepHistory.length > 0 && (
               <div className="step-nav">
-                <button 
-                  className="step-nav-btn" 
-                  onClick={handlePrev}
-                  title="Previous"
-                >
+                <button className="step-nav-btn" onClick={handlePrev}>
                   &lt;
                 </button>
                 <span className="step-nav-label" onClick={handleGoLive}>
                   {currentStep < 0 
                     ? 'LIVE' 
-                    : `Cell ${currentStep + 1} / ${stepHistory.length} | SP ${currentSensingPoint + 1}`}
+                    : `Cell ${currentStep + 1} / ${stepHistory.length}`}
                 </span>
-                <button 
-                  className="step-nav-btn" 
-                  onClick={handleNext}
-                  title="Next"
-                >
+                <button className="step-nav-btn" onClick={handleNext}>
                   &gt;
                 </button>
               </div>
@@ -222,7 +188,7 @@ function App() {
           </div>
 
           <div className="cell-viewer-area">
-            <CellViewer sensingPoints={currentSensingPoints} activeIndex={currentStep >= 0 ? currentSensingPoint : -1} />
+            <CellViewer sensingPoints={currentSensingPoints} />
           </div>
 
           <div className="controls-area">
