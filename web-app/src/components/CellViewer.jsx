@@ -20,8 +20,9 @@ export function CellViewer({ sensingPoints, activeIndex }) {
 
   return (
     <div className="cell-viewer">
+      <h3 className="cell-viewer-title">Sensing Points</h3>
       <div className="cell-viewer-container">
-        <div className="cell-viewer-number cell-viewer-number-top">
+        <div className="cell-viewer-number-top">
           {points[2]?.sf || points[1]?.sf || points[0]?.sf || '-'}
         </div>
 

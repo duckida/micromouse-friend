@@ -99,57 +99,9 @@ body {
 }
 
 .cell-viewer-area {
+  width: 100%;
   display: flex;
   justify-content: center;
-}
-
-.cell-viewer-area .cell-viewer {
-  margin-top: 0;
-}
-
-.step-nav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding-top: 12px;
-}
-
-.step-nav-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid var(--gray-300);
-  background: white;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--gray-700);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.step-nav-btn:hover:not(:disabled) {
-  background: var(--purple-50);
-  border-color: var(--purple-400);
-}
-
-.step-nav-btn:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
-.step-nav-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--gray-500);
-  cursor: pointer;
-  user-select: none;
-  min-width: 80px;
-  text-align: center;
 }
 
 .controls-area {
@@ -234,15 +186,8 @@ body {
   }
 
   .cell-viewer-area {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    top: 50%;
-    pointer-events: none;
-  }
-
-  .cell-viewer-area .cell-viewer {
-    pointer-events: auto;
+    width: 280px;
+    flex-shrink: 0;
   }
 
   .controls-area {

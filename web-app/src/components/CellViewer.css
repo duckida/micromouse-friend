@@ -1,16 +1,33 @@
 .cell-viewer {
-  background: #f5f5f5;
-  border-radius: 12px;
-  padding: 16px;
-  margin-top: 12px;
-  width: 220px;
-  margin-left: auto;
-  margin-right: auto;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--gray-200);
+  padding: 20px;
+}
+
+.cell-viewer-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-800);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cell-viewer-title::before {
+  content: '';
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(180deg, var(--purple-500), var(--purple-600));
+  border-radius: 2px;
 }
 
 .cell-viewer-container {
   position: relative;
-  width: 180px;
+  width: 100%;
+  max-width: 200px;
   height: 180px;
   margin: 0 auto;
 }
@@ -20,8 +37,8 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 70px;
-  height: 70px;
+  width: 60px;
+  height: 60px;
   background-color: #8b22ff;
   border-radius: 50%;
   display: flex;
@@ -32,10 +49,10 @@
 .cell-viewer-triangle {
   width: 0;
   height: 0;
-  border-left: 15px solid transparent;
-  border-right: 15px solid transparent;
-  border-bottom: 26px solid white;
-  margin-top: -3px;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 22px solid white;
+  margin-top: -2px;
 }
 
 .cell-viewer-number-top {
@@ -44,9 +61,9 @@
   left: 50%;
   transform: translateX(-50%);
   color: #6ea1ff;
-  font-size: 1.5rem;
-  font-weight: 500;
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .cell-viewer-cell {
@@ -55,58 +72,58 @@
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  background: white;
-  border: 2px solid #ddd;
-  border-radius: 6px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
   transition: all 0.15s ease;
 }
 
 .cell-viewer-cell.active {
   border-color: #8b22ff;
-  background: #f5f0ff;
-  box-shadow: 0 2px 8px rgba(139, 34, 255, 0.2);
+  background: var(--purple-50);
+  box-shadow: var(--shadow-sm);
 }
 
 .cell-label {
-  font-size: 0.75rem;
-  color: #666;
+  font-size: 0.7rem;
+  color: var(--gray-400);
   font-weight: 600;
-  min-width: 14px;
+  min-width: 12px;
 }
 
 .cell-value {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #6ea1ff;
 }
 
 .cell-viewer-cell:nth-child(2) {
-  top: 15px;
+  top: 20px;
   left: 0;
 }
 
 .cell-viewer-cell:nth-child(3) {
-  top: 70px;
+  top: 75px;
   left: 0;
 }
 
 .cell-viewer-cell:nth-child(4) {
-  top: 125px;
+  top: 130px;
   left: 0;
 }
 
 .cell-viewer-cell:nth-child(5) {
-  top: 15px;
+  top: 20px;
   right: 0;
 }
 
 .cell-viewer-cell:nth-child(6) {
-  top: 70px;
+  top: 75px;
   right: 0;
 }
 
 .cell-viewer-cell:nth-child(7) {
-  top: 125px;
+  top: 130px;
   right: 0;
 }
