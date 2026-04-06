@@ -87,6 +87,13 @@ function App() {
   const handlePrev = useCallback(() => {
     if (stepHistory.length === 0) return;
     
+    // If live, go to last cell, last sensing point
+    if (currentStep < 0) {
+      setCurrentStep(stepHistory.length - 1);
+      setCurrentSensingPoint(2);
+      return;
+    }
+    
     // If at first cell + first sensing point, stay there
     if (currentStep === 0 && currentSensingPoint === 0) return;
     
@@ -101,6 +108,13 @@ function App() {
 
   const handleNext = useCallback(() => {
     if (stepHistory.length === 0) return;
+    
+    // If live, go to first cell, first sensing point
+    if (currentStep < 0) {
+      setCurrentStep(0);
+      setCurrentSensingPoint(0);
+      return;
+    }
     
     // If at last cell + last sensing point, go to live
     if (currentStep === stepHistory.length - 1 && currentSensingPoint === 2) {
@@ -184,7 +198,11 @@ function App() {
 
             {stepHistory.length > 0 && (
               <div className="step-nav">
-                <button className="step-nav-btn" onClick={handlePrev} disabled={currentStep === 0 && currentSensingPoint === 0}>
+                <button 
+                  className="step-nav-btn" 
+                  onClick={handlePrev}
+                  title="Previous"
+                >
                   &lt;
                 </button>
                 <span className="step-nav-label" onClick={handleGoLive}>
@@ -192,7 +210,11 @@ function App() {
                     ? 'LIVE' 
                     : `Cell ${currentStep + 1} / ${stepHistory.length} | SP ${currentSensingPoint + 1}`}
                 </span>
-                <button className="step-nav-btn" onClick={handleNext} disabled={currentStep >= 0 && currentStep === stepHistory.length - 1 && currentSensingPoint === 2}>
+                <button 
+                  className="step-nav-btn" 
+                  onClick={handleNext}
+                  title="Next"
+                >
                   &gt;
                 </button>
               </div>

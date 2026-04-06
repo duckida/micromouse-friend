@@ -1,29 +1,18 @@
 .maze-canvas-container {
   width: 100%;
-  height: 400px;
-  min-height: 300px;
+  height: 100%;
   background-color: #ffffff;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   overflow: hidden;
+  position: relative;
 }
 
 .maze-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   display: block;
-}
-
-/* Responsive sizing */
-@media (max-width: 768px) {
-  .maze-canvas-container {
-    height: 300px;
-    min-height: 250px;
-  }
-}
-
-@media (min-width: 1200px) {
-  .maze-canvas-container {
-    height: 500px;
-  }
 }
