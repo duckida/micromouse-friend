@@ -3,15 +3,15 @@
   border-radius: 12px;
   padding: 16px;
   margin-top: 12px;
-  width: 240px;
+  width: 220px;
   margin-left: auto;
   margin-right: auto;
 }
 
 .cell-viewer-container {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 180px;
+  height: 180px;
   margin: 0 auto;
 }
 
@@ -20,8 +20,8 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 90px;
-  height: 90px;
+  width: 70px;
+  height: 70px;
   background-color: #8b22ff;
   border-radius: 50%;
   display: flex;
@@ -32,38 +32,81 @@
 .cell-viewer-triangle {
   width: 0;
   height: 0;
-  border-left: 20px solid transparent;
-  border-right: 20px solid transparent;
-  border-bottom: 35px solid white;
-  margin-top: -4px;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-bottom: 26px solid white;
+  margin-top: -3px;
 }
 
-.cell-viewer-number {
+.cell-viewer-number-top {
   position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
   color: #6ea1ff;
   font-size: 1.5rem;
   font-weight: 500;
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
-.cell-viewer-number-top {
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+.cell-viewer-cell {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: white;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  transition: all 0.15s ease;
 }
 
-.cell-viewer-number-left {
+.cell-viewer-cell.active {
+  border-color: #8b22ff;
+  background: #f5f0ff;
+  box-shadow: 0 2px 8px rgba(139, 34, 255, 0.2);
+}
+
+.cell-label {
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: 600;
+  min-width: 14px;
+}
+
+.cell-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #6ea1ff;
+}
+
+.cell-viewer-cell:nth-child(2) {
+  top: 15px;
   left: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  align-items: center;
 }
 
-.cell-viewer-number-right {
+.cell-viewer-cell:nth-child(3) {
+  top: 70px;
+  left: 0;
+}
+
+.cell-viewer-cell:nth-child(4) {
+  top: 125px;
+  left: 0;
+}
+
+.cell-viewer-cell:nth-child(5) {
+  top: 15px;
   right: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  align-items: center;
+}
+
+.cell-viewer-cell:nth-child(6) {
+  top: 70px;
+  right: 0;
+}
+
+.cell-viewer-cell:nth-child(7) {
+  top: 125px;
+  right: 0;
 }

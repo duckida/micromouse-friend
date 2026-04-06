@@ -220,7 +220,7 @@ function App() {
                 timeoutWarning={timeoutWarning}
               />
 
-              <CellViewer sensingPoints={currentSensingPoints} />
+              <CellViewer sensingPoints={currentSensingPoints} activeIndex={isLive ? -1 : currentSensingPoint} />
 
               <SettingsPanel
                 settings={settings}
