@@ -1,69 +1,69 @@
 .cell-viewer {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 12px;
+  padding: 16px;
   margin-top: 12px;
+  width: 240px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.cell-viewer-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #334155;
-  margin-bottom: 10px;
+.cell-viewer-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
 }
 
-.sensing-points {
+.cell-viewer-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90px;
+  height: 90px;
+  background-color: #8b22ff;
+  border-radius: 50%;
   display: flex;
-  gap: 8px;
-  justify-content: space-between;
+  justify-content: center;
+  align-items: center;
 }
 
-.sensing-point {
-  flex: 1;
-  background: white;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 8px;
-  text-align: center;
-  min-width: 50px;
+.cell-viewer-triangle {
+  width: 0;
+  height: 0;
+  border-left: 20px solid transparent;
+  border-right: 20px solid transparent;
+  border-bottom: 35px solid white;
+  margin-top: -4px;
 }
 
-.sensing-point.has-data {
-  border-color: #3b82f6;
+.cell-viewer-number {
+  position: absolute;
+  color: #6ea1ff;
+  font-size: 1.5rem;
+  font-weight: 500;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
-.sensing-point-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #64748b;
-  margin-bottom: 4px;
+.cell-viewer-number-top {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-.sensing-point-values {
+.cell-viewer-number-left {
+  left: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 14px;
+  align-items: center;
 }
 
-.sensor-value {
-  font-size: 13px;
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 600;
-  color: #2563eb;
-}
-
-.sensor-label {
-  color: #64748b;
-  margin-right: 2px;
-}
-
-.sensor-number {
-  color: #2563eb;
-}
-
-.sensing-point-empty {
-  color: #94a3b8;
-  font-size: 18px;
-  line-height: 1;
+.cell-viewer-number-right {
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
 }
