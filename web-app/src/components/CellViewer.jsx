@@ -26,26 +26,38 @@ export function CellViewer({ sensingPoints, activeIndex }) {
           {points[2]?.sf || points[1]?.sf || points[0]?.sf || '-'}
         </div>
 
-        <div className={getCellClass(2)}>
-          <span className="cell-label">3</span>
-          <span className="cell-value">{points[2]?.sl || '-'}</span>
-          <span className="cell-value">{points[2]?.sr || '-'}</span>
-        </div>
-
-        <div className={getCellClass(1)}>
-          <span className="cell-label">2</span>
-          <span className="cell-value">{points[1]?.sl || '-'}</span>
-          <span className="cell-value">{points[1]?.sr || '-'}</span>
-        </div>
-
-        <div className={getCellClass(0)}>
-          <span className="cell-label">1</span>
-          <span className="cell-value">{points[0]?.sl || '-'}</span>
-          <span className="cell-value">{points[0]?.sr || '-'}</span>
+        <div className="cell-viewer-left-col">
+          <div className={getCellClass(0)}>
+            <span className="cell-label">1</span>
+            <span className="cell-value">{points[0]?.sl || '-'}</span>
+          </div>
+          <div className={getCellClass(1)}>
+            <span className="cell-label">2</span>
+            <span className="cell-value">{points[1]?.sl || '-'}</span>
+          </div>
+          <div className={getCellClass(2)}>
+            <span className="cell-label">3</span>
+            <span className="cell-value">{points[2]?.sl || '-'}</span>
+          </div>
         </div>
 
         <div className="cell-viewer-circle">
           <div className="cell-viewer-triangle"></div>
+        </div>
+
+        <div className="cell-viewer-right-col">
+          <div className={getCellClass(0)}>
+            <span className="cell-label">1</span>
+            <span className="cell-value">{points[0]?.sr || '-'}</span>
+          </div>
+          <div className={getCellClass(1)}>
+            <span className="cell-label">2</span>
+            <span className="cell-value">{points[1]?.sr || '-'}</span>
+          </div>
+          <div className={getCellClass(2)}>
+            <span className="cell-label">3</span>
+            <span className="cell-value">{points[2]?.sr || '-'}</span>
+          </div>
         </div>
       </div>
     </div>

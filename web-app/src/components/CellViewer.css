@@ -26,33 +26,10 @@
 
 .cell-viewer-container {
   position: relative;
-  width: 100%;
-  max-width: 200px;
-  height: 180px;
-  margin: 0 auto;
-}
-
-.cell-viewer-circle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 60px;
-  height: 60px;
-  background-color: #8b22ff;
-  border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.cell-viewer-triangle {
-  width: 0;
-  height: 0;
-  border-left: 12px solid transparent;
-  border-right: 12px solid transparent;
-  border-bottom: 22px solid white;
-  margin-top: -2px;
+  height: 120px;
 }
 
 .cell-viewer-number-top {
@@ -66,16 +43,53 @@
   font-family: 'JetBrains Mono', monospace;
 }
 
+.cell-viewer-circle {
+  width: 60px;
+  height: 60px;
+  background-color: #8b22ff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.cell-viewer-triangle {
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 22px solid white;
+  margin-top: -2px;
+}
+
+.cell-viewer-left-col,
+.cell-viewer-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cell-viewer-left-col {
+  align-items: flex-start;
+  margin-right: 16px;
+}
+
+.cell-viewer-right-col {
+  align-items: flex-end;
+  margin-left: 16px;
+}
+
 .cell-viewer-cell {
-  position: absolute;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
+  gap: 4px;
+  padding: 2px 6px;
   background: var(--gray-50);
   border: 1px solid var(--gray-200);
   border-radius: var(--radius-sm);
   transition: all 0.15s ease;
+  min-width: 36px;
 }
 
 .cell-viewer-cell.active {
@@ -85,45 +99,14 @@
 }
 
 .cell-label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--gray-400);
   font-weight: 600;
-  min-width: 12px;
 }
 
 .cell-value {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #6ea1ff;
-}
-
-.cell-viewer-cell:nth-child(2) {
-  top: 20px;
-  left: 0;
-}
-
-.cell-viewer-cell:nth-child(3) {
-  top: 75px;
-  left: 0;
-}
-
-.cell-viewer-cell:nth-child(4) {
-  top: 130px;
-  left: 0;
-}
-
-.cell-viewer-cell:nth-child(5) {
-  top: 20px;
-  right: 0;
-}
-
-.cell-viewer-cell:nth-child(6) {
-  top: 75px;
-  right: 0;
-}
-
-.cell-viewer-cell:nth-child(7) {
-  top: 130px;
-  right: 0;
 }
