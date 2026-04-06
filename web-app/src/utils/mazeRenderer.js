@@ -291,7 +291,6 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
     for (const sensor of sensorData) {
       if (sensor.value === undefined) continue;
 
-      const wallDetected = sensor.value >= sensor.threshold;
       const startAngle = sensor.angle - arcWidth;
       const endAngle = sensor.angle + arcWidth;
 
@@ -300,11 +299,11 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
       ctx.arc(px, py, arcOuter, startAngle, endAngle);
       ctx.arc(px, py, arcInner, endAngle, startAngle, true);
       ctx.closePath();
-      ctx.fillStyle = wallDetected ? '#ef4444' : '#22c55e';
+      ctx.fillStyle = '#3b82f6';
       ctx.fill();
 
       // Arc border
-      ctx.strokeStyle = wallDetected ? '#dc2626' : '#16a34a';
+      ctx.strokeStyle = '#2563eb';
       ctx.lineWidth = 1;
       ctx.stroke();
 
@@ -323,7 +322,7 @@ export function drawRobot(ctx, layout, rx, ry, rd, mazeHeight, sensors = null) {
       ctx.lineJoin = 'round';
       ctx.strokeText(sensor.value.toString(), labelX, labelY);
 
-      ctx.fillStyle = wallDetected ? '#dc2626' : '#16a34a';
+      ctx.fillStyle = '#2563eb';
       ctx.fillText(sensor.value.toString(), labelX, labelY);
     }
   }

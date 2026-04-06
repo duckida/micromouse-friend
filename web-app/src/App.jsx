@@ -7,6 +7,7 @@ import ConnectionPanel from './components/ConnectionPanel.jsx';
 import MazeCanvas from './components/MazeCanvas.jsx';
 import SettingsPanel from './components/SettingsPanel.jsx';
 import InfoPanel from './components/InfoPanel.jsx';
+import CellViewer from './components/CellViewer.jsx';
 import './App.css';
 
 // Default settings
@@ -62,39 +63,70 @@ function App() {
 
   // Step navigation: -1 = live, 0+ = step index
   const [currentStep, setCurrentStep] = useState(-1);
+  
+  // Sensing point within current cell (0, 1, 2)
+  const [currentSensingPoint, setCurrentSensingPoint] = useState(0);
 
   // Auto-follow live when not navigating
-  useEffect(() => {
-    if (currentStep >= 0 && currentStep >= stepHistory.length) {
-      setCurrentStep(-1);
-    }
-  }, [stepHistory.length, currentStep]);
+  const isLive = currentStep < 0;
 
   // Compute display state
   const displayState = currentStep >= 0 && currentStep < stepHistory.length
-    ? stepHistory[currentStep]
+    ? { ...stepHistory[currentStep], sensingPoints: stepHistory[currentStep].sensingPoints || [null, null, null] }
     : mazeState;
+  
+  // Get current sensing point data
+  const currentSensingPoints = displayState?.sensingPoints || [null, null, null];
+  const activeSensingPoint = currentSensingPoints[currentSensingPoint] || null;
+  
+  // Merge active sensing point into display state for robot display
+  const canvasState = activeSensingPoint 
+    ? { ...displayState, sf: activeSensingPoint.sf, sl: activeSensingPoint.sl, sr: activeSensingPoint.sr }
+    : displayState;
 
   const handlePrev = useCallback(() => {
     if (stepHistory.length === 0) return;
-    setCurrentStep(prev => {
-      if (prev < 0) return stepHistory.length - 1; // from live, go to last step
-      if (prev === 0) return 0;
-      return prev - 1;
-    });
-  }, [stepHistory.length]);
+    if (currentStep >= 0 && currentStep >= stepHistory.length) {
+      setCurrentStep(-1);
+      setCurrentSensingPoint(0);
+      return;
+    }
+    
+    // If at first sensing point, go to previous cell
+    if (currentSensingPoint === 0) {
+      setCurrentStep(prev => {
+        if (prev === 0) return 0;
+        return prev - 1;
+      });
+      setCurrentSensingPoint(2); // Go to last sensing point of previous cell
+    } else {
+      setCurrentSensingPoint(prev => prev - 1);
+    }
+  }, [stepHistory.length, currentSensingPoint, currentStep]);
 
   const handleNext = useCallback(() => {
     if (stepHistory.length === 0) return;
-    setCurrentStep(prev => {
-      if (prev < 0) return -1; // already live
-      if (prev >= stepHistory.length - 1) return -1; // go to live
-      return prev + 1;
-    });
-  }, [stepHistory.length]);
+    if (currentStep >= 0 && currentStep >= stepHistory.length) {
+      setCurrentStep(-1);
+      setCurrentSensingPoint(0);
+      return;
+    }
+    
+    // If at last sensing point, go to next cell
+    if (currentSensingPoint === 2) {
+      setCurrentStep(prev => {
+        if (prev >= stepHistory.length - 1) return -1;
+        return prev + 1;
+      });
+      setCurrentSensingPoint(0); // Go to first sensing point of next cell
+    } else {
+      setCurrentSensingPoint(prev => prev + 1);
+    }
+  }, [stepHistory.length, currentSensingPoint, currentStep]);
 
   const handleGoLive = useCallback(() => {
     setCurrentStep(-1);
+    setCurrentSensingPoint(0);
   }, []);
 
   // Start maze solving mode
@@ -139,8 +171,6 @@ function App() {
     setBackdropImage(null);
   }, []);
 
-  const isLive = currentStep < 0;
-
   return (
     <div className="app">
       <header className="app-header">
@@ -151,10 +181,11 @@ function App() {
         <div className="app-content">
           <div className="visualization-area">
             <MazeCanvas 
-              mazeState={displayState} 
+              mazeState={canvasState} 
               settings={settings} 
               pathHistory={pathHistory}
               backdropImage={backdropImage}
+              activeSensingPoint={!isLive ? currentSensingPoint : null}
             />
 
             {stepHistory.length > 0 && (
@@ -163,7 +194,9 @@ function App() {
                   &lt;
                 </button>
                 <span className="step-nav-label" onClick={!isLive ? handleGoLive : undefined}>
-                  {isLive ? 'LIVE' : `${currentStep + 1} / ${stepHistory.length}`}
+                  {isLive 
+                    ? 'LIVE' 
+                    : `${currentStep + 1}.${currentSensingPoint + 1} / ${stepHistory.length}`}
                 </span>
                 <button className="step-nav-btn" onClick={handleNext} disabled={stepHistory.length === 0}>
                   &gt;
@@ -184,9 +217,10 @@ function App() {
             <div className="panels-row">
               <InfoPanel
                 mazeState={displayState}
-                connectionState={connectionState}
                 timeoutWarning={timeoutWarning}
               />
+
+              <CellViewer sensingPoints={currentSensingPoints} />
 
               <SettingsPanel
                 settings={settings}

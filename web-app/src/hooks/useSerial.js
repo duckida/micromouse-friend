@@ -33,6 +33,7 @@ export function useSerial() {
   
   const connectionManagerRef = useRef(null);
   const currentSensors = useRef({ sf: 0, sl: 0, sr: 0 });
+  const currentSensingPoints = useRef([null, null, null]);
 
   // Initialize connection manager
   useEffect(() => {
@@ -82,10 +83,18 @@ export function useSerial() {
         (parsed) => {
           // Wall state packet: merge sensor data into existing maze state
           if ('sf' in parsed && !('w' in parsed)) {
+            const sp = parsed.sp;
+            if (sp !== undefined && sp >= 0 && sp <= 2) {
+              currentSensingPoints.current[sp] = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
+            }
             currentSensors.current = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
             setMazeState(prevState => {
               if (!prevState) return prevState;
-              return { ...prevState, sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
+              const sensingPoints = [...(prevState.sensingPoints || [null, null, null])];
+              if (sp !== undefined && sp >= 0 && sp <= 2) {
+                sensingPoints[sp] = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
+              }
+              return { ...prevState, sf: parsed.sf, sl: parsed.sl, sr: parsed.sr, sensingPoints };
             });
             setTimeoutWarning(false);
             return;
@@ -97,6 +106,7 @@ export function useSerial() {
             if (prevState && (prevState.w !== parsed.w || prevState.h !== parsed.h)) {
               setPathHistory([{ x: parsed.rx, y: parsed.ry }]);
               setStepHistory([]);
+              currentSensingPoints.current = [null, null, null];
               return parsed;
             }
             return parsed;
@@ -116,7 +126,8 @@ export function useSerial() {
             const lastStep = prev[prev.length - 1];
             if (!lastStep || lastStep.rx !== parsed.rx || lastStep.ry !== parsed.ry) {
               const s = currentSensors.current;
-              return [...prev, { ...parsed, sf: s.sf, sl: s.sl, sr: s.sr }];
+              const sp = currentSensingPoints.current;
+              return [...prev, { ...parsed, sf: s.sf, sl: s.sl, sr: s.sr, sensingPoints: [...sp] }];
             }
             return prev;
           });

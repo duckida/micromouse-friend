@@ -11,7 +11,6 @@ import './ConnectionPanel.css';
  * @property {string} connectionState.status - Connection status
  * @property {string|null} connectionState.errorMessage - Error message if any
  * @property {Function} onConnect - Connect handler
- * @property {Function} onDisconnect - Disconnect handler
  * @property {Function} onStartSolve - Start maze solve handler
  * @property {boolean} isSupported - Whether Web Serial API is supported
  */
@@ -23,7 +22,6 @@ import './ConnectionPanel.css';
 export function ConnectionPanel({ 
   connectionState, 
   onConnect, 
-  onDisconnect, 
   onStartSolve,
   isSupported 
 }) {

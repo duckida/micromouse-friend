@@ -14,6 +14,7 @@
  * @property {number} sf - Front sensor value
  * @property {number} sl - Left sensor value
  * @property {number} sr - Right sensor value
+ * @property {number} [sp] - Sensing point index (0, 1, or 2)
  */
 
 /**
@@ -29,6 +30,8 @@
  * @property {number} [sf] - Front sensor value
  * @property {number} [sl] - Left sensor value
  * @property {number} [sr] - Right sensor value
+ * @property {number} [sp] - Sensing point index (0, 1, or 2) within current cell
+ * @property {Array<{sf: number, sl: number, sr: number}>} [sensingPoints] - Array of 3 sensor readings for current cell
  */
 
 /**
@@ -68,6 +71,7 @@ function isWallState(data) {
   if ('w' in data || 'h' in data || 'c' in data) return false;
   if (typeof data.sf !== 'number' || typeof data.sl !== 'number' || typeof data.sr !== 'number') return false;
   if (data.sf < 0 || data.sl < 0 || data.sr < 0) return false;
+  if (data.sp !== undefined && (typeof data.sp !== 'number' || data.sp < 0 || data.sp > 2)) return false;
   return true;
 }
 

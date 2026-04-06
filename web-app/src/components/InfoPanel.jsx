@@ -7,8 +7,6 @@ import './InfoPanel.css';
 /**
  * @typedef {Object} InfoPanelProps
  * @property {import('../utils/telemetryParser.js').MazeState|null} mazeState - Current maze state
- * @property {Object} connectionState - Connection state
- * @property {string} connectionState.status - Connection status
  * @property {boolean} timeoutWarning - Whether to show timeout warning
  */
 
@@ -31,7 +29,7 @@ function getDirectionName(degrees) {
  * Info panel component
  * @param {InfoPanelProps} props - Component props
  */
-export function InfoPanel({ mazeState, connectionState, timeoutWarning }) {
+export function InfoPanel({ mazeState, timeoutWarning }) {
   return (
     <div className="info-panel">
       <h3 className="info-title">Robot Info</h3>

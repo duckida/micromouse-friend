@@ -1,7 +1,7 @@
 // Web Serial API Connection Manager
 // Manages serial port selection, connection, and data reception
 
-import { parsePacket, validateMazeState } from './telemetryParser.js';
+import { parsePacket } from './telemetryParser.js';
 
 // Connection states
 export const ConnectionState = {
