@@ -104,6 +104,11 @@ body {
   justify-content: center;
 }
 
+.cell-viewer-area .cell-viewer {
+  width: 100%;
+  max-width: 320px;
+}
+
 .controls-area {
   display: flex;
   flex-direction: column;
@@ -176,23 +181,32 @@ body {
   }
 
   .app-content {
-    flex-direction: row;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
   }
 
   .visualization-area {
-    flex: 1;
-    min-width: 0;
+    width: 100%;
+    max-width: 800px;
   }
 
   .cell-viewer-area {
-    width: 280px;
-    flex-shrink: 0;
+    width: 100%;
+    max-width: 800px;
+  }
+
+  .cell-viewer-area .cell-viewer {
+    max-width: 100%;
   }
 
   .controls-area {
-    width: 340px;
-    flex-shrink: 0;
+    width: 100%;
+    max-width: 800px;
+  }
+
+  .panels-row {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
