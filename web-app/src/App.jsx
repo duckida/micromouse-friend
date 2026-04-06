@@ -205,6 +205,10 @@ function App() {
             )}
           </div>
 
+          <div className="cell-viewer-area">
+            <CellViewer sensingPoints={currentSensingPoints} activeIndex={isLive ? -1 : currentSensingPoint} />
+          </div>
+
           <div className="controls-area">
             <ConnectionPanel
               connectionState={connectionState}
@@ -219,8 +223,6 @@ function App() {
                 mazeState={displayState}
                 timeoutWarning={timeoutWarning}
               />
-
-              <CellViewer sensingPoints={currentSensingPoints} activeIndex={isLive ? -1 : currentSensingPoint} />
 
               <SettingsPanel
                 settings={settings}

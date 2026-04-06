@@ -98,6 +98,15 @@ body {
   border: 1px solid var(--gray-200);
 }
 
+.cell-viewer-area {
+  display: flex;
+  justify-content: center;
+}
+
+.cell-viewer-area .cell-viewer {
+  margin-top: 0;
+}
+
 .step-nav {
   display: flex;
   align-items: center;
@@ -222,6 +231,18 @@ body {
   .visualization-area {
     flex: 1;
     min-width: 0;
+  }
+
+  .cell-viewer-area {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 50%;
+    pointer-events: none;
+  }
+
+  .cell-viewer-area .cell-viewer {
+    pointer-events: auto;
   }
 
   .controls-area {
