@@ -96,6 +96,23 @@ body {
   padding: 20px;
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+}
+
+.visualization-area .maze-canvas-container {
+  flex: 1;
+  min-height: 300px;
+}
+
+.step-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--gray-200);
+  margin-top: 16px;
 }
 
 .cell-viewer-area {

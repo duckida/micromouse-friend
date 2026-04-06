@@ -68,7 +68,7 @@ function App() {
   const [currentSensingPoint, setCurrentSensingPoint] = useState(0);
 
   // Auto-follow live when not navigating
-  const isLive = currentStep < 0;
+  // (using currentStep < 0 directly in JSX)
 
   // Compute display state
   const displayState = currentStep >= 0 && currentStep < stepHistory.length
@@ -86,19 +86,14 @@ function App() {
 
   const handlePrev = useCallback(() => {
     if (stepHistory.length === 0) return;
-    if (currentStep >= 0 && currentStep >= stepHistory.length) {
-      setCurrentStep(-1);
-      setCurrentSensingPoint(0);
-      return;
-    }
     
-    // If at first sensing point, go to previous cell
+    // If at first cell + first sensing point, stay there
+    if (currentStep === 0 && currentSensingPoint === 0) return;
+    
+    // If at first sensing point, go to previous cell (last sensing point)
     if (currentSensingPoint === 0) {
-      setCurrentStep(prev => {
-        if (prev === 0) return 0;
-        return prev - 1;
-      });
-      setCurrentSensingPoint(2); // Go to last sensing point of previous cell
+      setCurrentStep(prev => prev - 1);
+      setCurrentSensingPoint(2);
     } else {
       setCurrentSensingPoint(prev => prev - 1);
     }
@@ -106,19 +101,18 @@ function App() {
 
   const handleNext = useCallback(() => {
     if (stepHistory.length === 0) return;
-    if (currentStep >= 0 && currentStep >= stepHistory.length) {
+    
+    // If at last cell + last sensing point, go to live
+    if (currentStep === stepHistory.length - 1 && currentSensingPoint === 2) {
       setCurrentStep(-1);
       setCurrentSensingPoint(0);
       return;
     }
     
-    // If at last sensing point, go to next cell
+    // If at last sensing point, go to next cell (first sensing point)
     if (currentSensingPoint === 2) {
-      setCurrentStep(prev => {
-        if (prev >= stepHistory.length - 1) return -1;
-        return prev + 1;
-      });
-      setCurrentSensingPoint(0); // Go to first sensing point of next cell
+      setCurrentStep(prev => prev + 1);
+      setCurrentSensingPoint(0);
     } else {
       setCurrentSensingPoint(prev => prev + 1);
     }
@@ -185,20 +179,20 @@ function App() {
               settings={settings} 
               pathHistory={pathHistory}
               backdropImage={backdropImage}
-              activeSensingPoint={!isLive ? currentSensingPoint : null}
+              activeSensingPoint={currentStep >= 0 ? currentSensingPoint : null}
             />
 
             {stepHistory.length > 0 && (
               <div className="step-nav">
-                <button className="step-nav-btn" onClick={handlePrev} disabled={stepHistory.length === 0 || currentStep === 0}>
+                <button className="step-nav-btn" onClick={handlePrev} disabled={currentStep === 0 && currentSensingPoint === 0}>
                   &lt;
                 </button>
-                <span className="step-nav-label" onClick={!isLive ? handleGoLive : undefined}>
-                  {isLive 
+                <span className="step-nav-label" onClick={handleGoLive}>
+                  {currentStep < 0 
                     ? 'LIVE' 
-                    : `${currentStep + 1}.${currentSensingPoint + 1} / ${stepHistory.length}`}
+                    : `Cell ${currentStep + 1} / ${stepHistory.length} | SP ${currentSensingPoint + 1}`}
                 </span>
-                <button className="step-nav-btn" onClick={handleNext} disabled={stepHistory.length === 0}>
+                <button className="step-nav-btn" onClick={handleNext} disabled={currentStep >= 0 && currentStep === stepHistory.length - 1 && currentSensingPoint === 2}>
                   &gt;
                 </button>
               </div>
@@ -206,7 +200,7 @@ function App() {
           </div>
 
           <div className="cell-viewer-area">
-            <CellViewer sensingPoints={currentSensingPoints} activeIndex={isLive ? -1 : currentSensingPoint} />
+            <CellViewer sensingPoints={currentSensingPoints} activeIndex={currentStep >= 0 ? currentSensingPoint : -1} />
           </div>
 
           <div className="controls-area">
