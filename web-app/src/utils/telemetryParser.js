@@ -330,11 +330,12 @@ export function buildMazeFromMinimalState(minimalState, thresholds, currentState
   const leftIdx = getRelativeWallIndex(rd, 'left');
   const rightIdx = getRelativeWallIndex(rd, 'right');
 
-  // Update current cell walls
+  // Update current cell walls (only set to 1, never clear to 0)
   if (rx >= 0 && rx < width && ry >= 0 && ry < height) {
-    cells[rx][ry].w[frontIdx] = frontWall;
-    cells[rx][ry].w[leftIdx] = leftWall;
-    cells[rx][ry].w[rightIdx] = rightWall;
+    // Only update if wall is detected (set to 1), don't clear existing walls
+    if (frontWall) cells[rx][ry].w[frontIdx] = 1;
+    if (leftWall) cells[rx][ry].w[leftIdx] = 1;
+    if (rightWall) cells[rx][ry].w[rightIdx] = 1;
 
     // Update neighbor cells (for bidirectional walls)
     const neighbors = [
