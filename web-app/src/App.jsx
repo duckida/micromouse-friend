@@ -55,6 +55,8 @@ function App() {
     timeoutWarning,
     pathHistory,
     stepHistory,
+    debugLevel,
+    thresholds,
     connect,
     disconnect,
     send,
@@ -188,12 +190,13 @@ function App() {
           </div>
 
           <div className="cell-viewer-area">
-            <CellViewer sensingPoints={currentSensingPoints} />
+            <CellViewer sensingPoints={currentSensingPoints} thresholds={thresholds} debugLevel={debugLevel} />
           </div>
 
           <div className="controls-area">
             <ConnectionPanel
               connectionState={connectionState}
+              debugLevel={debugLevel}
               onConnect={connect}
               onDisconnect={disconnect}
               onStartSolve={handleStartSolve}
@@ -204,6 +207,8 @@ function App() {
               <InfoPanel
                 mazeState={displayState}
                 timeoutWarning={timeoutWarning}
+                debugLevel={debugLevel}
+                thresholds={thresholds}
               />
 
               <SettingsPanel

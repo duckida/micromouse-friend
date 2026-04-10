@@ -10,6 +10,7 @@ import './ConnectionPanel.css';
  * @property {Object} connectionState - Connection state
  * @property {string} connectionState.status - Connection status
  * @property {string|null} connectionState.errorMessage - Error message if any
+ * @property {number|null} debugLevel - Current debug level (0 = minimal, 1 = full, null = unknown)
  * @property {Function} onConnect - Connect handler
  * @property {Function} onStartSolve - Start maze solve handler
  * @property {boolean} isSupported - Whether Web Serial API is supported
@@ -21,6 +22,7 @@ import './ConnectionPanel.css';
  */
 export function ConnectionPanel({ 
   connectionState, 
+  debugLevel,
   onConnect, 
   onStartSolve,
   isSupported 
@@ -53,6 +55,16 @@ export function ConnectionPanel({
     }
   };
 
+  const getDebugLevelStatus = () => {
+    if (status !== ConnectionState.CONNECTED) return null;
+    if (debugLevel === null) return 'Waiting for setup...';
+    if (debugLevel === 0) return 'Minimal Mode';
+    if (debugLevel === 1) return 'Full Mode';
+    return 'Unknown Mode';
+  };
+
+  const debugStatus = getDebugLevelStatus();
+
   if (!isSupported) {
     return (
       <div className="connection-panel">
@@ -69,6 +81,11 @@ export function ConnectionPanel({
       <div className="connection-status">
         <span className={`status-indicator ${getStatusClass()}`}></span>
         <span className="status-text">{getStatusText()}</span>
+        {debugStatus && (
+          <span className={`debug-status debug-level-${debugLevel}`}>
+            {debugStatus}
+          </span>
+        )}
       </div>
       
       {errorMessage && (
@@ -89,6 +106,8 @@ export function ConnectionPanel({
             <button 
               className="solve-button"
               onClick={onStartSolve}
+              disabled={debugLevel === null}
+              title={debugLevel === null ? 'Waiting for setup payload from robot' : 'Start maze solving'}
             >
               Start Solve
             </button>
