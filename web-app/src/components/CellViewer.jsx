@@ -37,7 +37,7 @@ export function CellViewer({ sensingPoints, activeIndex, thresholds, debugLevel 
     <div className="cell-viewer">
       <h3 className="cell-viewer-title">
         Sensing Points
-        {debugLevel === 0 && <span className="cell-viewer-badge minimal">Minimal</span>}
+        {debugLevel === 1 && <span className="cell-viewer-badge minimal">Minimal</span>}
       </h3>
       <div className="cell-viewer-container">
         <div className={`cell-viewer-number-top ${frontIsWall ? 'wall-detected' : ''}`}>

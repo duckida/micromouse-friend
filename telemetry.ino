@@ -2,8 +2,9 @@
 // Serializes maze state data to JSON and transmits over Serial1 (HC-05 Bluetooth)
 
 // Debug levels
-#define DEBUG_MINIMAL 0
-#define DEBUG_FULL 1
+#define DEBUG_NONE 0
+#define DEBUG_MINIMAL 1
+#define DEBUG_FULL 2
 
 // Current debug level (set in setup)
 int debugLevel = DEBUG_FULL;
@@ -37,6 +38,11 @@ void initTelemetry() {
 // Includes: debug level, maze dimensions, sensor thresholds
 void sendTelemetrySetup() {
   if (!Serial1) {
+    return;
+  }
+
+  if (debugLevel == DEBUG_NONE) {
+    telemetryInitialized = true; // Mark as initialized but don't send
     return;
   }
 
@@ -145,13 +151,17 @@ void sendMazeState() {
 // Send maze state based on debug level
 // Wrapper that calls appropriate function based on debugLevel
 void sendDebugState() {
+  if (debugLevel == DEBUG_NONE) {
+    return; // Don't send any telemetry
+  }
+
   if (!telemetryInitialized) {
     sendTelemetrySetup();
   }
 
   if (debugLevel == DEBUG_MINIMAL) {
     sendMinimalState();
-  } else {
+  } else if (debugLevel == DEBUG_FULL) {
     sendMazeState();
   }
 }

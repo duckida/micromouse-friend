@@ -48,7 +48,7 @@
 /**
  * @typedef {Object} SetupPayload
  * @property {boolean} setup - Always true
- * @property {number} level - Debug level (0 = minimal, 1 = full)
+ * @property {number} level - Debug level (0 = none, 1 = minimal, 2 = full)
  * @property {number} w - Maze width
  * @property {number} h - Maze height
  * @property {number} tl - Left wall threshold
@@ -110,7 +110,7 @@ export function parsePacket(packet) {
 function isSetupPayload(data) {
   if (!data || typeof data !== 'object') return false;
   if (data.setup !== true) return false;
-  if (typeof data.level !== 'number' || (data.level !== 0 && data.level !== 1)) return false;
+  if (typeof data.level !== 'number' || data.level < 0 || data.level > 2) return false;
   if (typeof data.w !== 'number' || data.w < 1 || data.w > 16) return false;
   if (typeof data.h !== 'number' || data.h < 1 || data.h > 16) return false;
   if (typeof data.tl !== 'number') return false;

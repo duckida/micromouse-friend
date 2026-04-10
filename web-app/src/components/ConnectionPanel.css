@@ -156,11 +156,16 @@
 }
 
 .debug-level-0 {
+  background: var(--gray-100);
+  color: var(--gray-600);
+}
+
+.debug-level-1 {
   background: var(--blue-100);
   color: var(--blue-700);
 }
 
-.debug-level-1 {
+.debug-level-2 {
   background: var(--green-100);
   color: var(--green-700);
 }

@@ -111,13 +111,20 @@
 
 /* Debug level badges */
 .debug-level-0 {
+  color: var(--gray-600);
+  background: var(--gray-100);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.debug-level-1 {
   color: var(--blue-600);
   background: var(--blue-50);
   padding: 2px 8px;
   border-radius: var(--radius-sm);
 }
 
-.debug-level-1 {
+.debug-level-2 {
   color: var(--green-600);
   background: var(--green-50);
   padding: 2px 8px;

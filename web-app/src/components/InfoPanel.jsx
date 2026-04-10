@@ -8,7 +8,7 @@ import './InfoPanel.css';
  * @typedef {Object} InfoPanelProps
  * @property {import('../utils/telemetryParser.js').MazeState|null} mazeState - Current maze state
  * @property {boolean} timeoutWarning - Whether to show timeout warning
- * @property {number|null} debugLevel - Current debug level (0 = minimal, 1 = full, null = unknown)
+ * @property {number|null} debugLevel - Current debug level (0 = none, 1 = minimal, 2 = full, null = unknown)
  * @property {Object} thresholds - Sensor thresholds {tl, tf, tr}
  */
 
@@ -33,8 +33,9 @@ function getDirectionName(degrees) {
  * @returns {string} Display name
  */
 function getDebugLevelName(level) {
-  if (level === 0) return 'Minimal';
-  if (level === 1) return 'Full';
+  if (level === 0) return 'None';
+  if (level === 1) return 'Minimal';
+  if (level === 2) return 'Full';
   return 'Unknown';
 }
 
