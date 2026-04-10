@@ -128,20 +128,46 @@ export function useSerial() {
 
             // Track path history
             setPathHistory(prev => {
+              const newX = parsed.rx;
+              const newY = parsed.ry;
               const lastPoint = prev[prev.length - 1];
-              if (!lastPoint || lastPoint.x !== parsed.rx || lastPoint.y !== parsed.ry) {
-                return [...prev, { x: parsed.rx, y: parsed.ry }];
+              
+              const shouldAdd = !lastPoint || 
+                lastPoint.x !== newX || 
+                lastPoint.y !== newY ||
+                typeof lastPoint.x === 'undefined';
+              
+              if (shouldAdd) {
+                return [...prev, { x: newX, y: newY }];
               }
               return prev;
             });
 
             // Snapshot maze state on position change
             setStepHistory(prev => {
+              const newRx = parsed.rx;
+              const newRy = parsed.ry;
               const lastStep = prev[prev.length - 1];
-              if (!lastStep || lastStep.rx !== parsed.rx || lastStep.ry !== parsed.ry) {
+              
+              // Add to history if position changed or no previous step
+              const shouldAdd = !lastStep || 
+                lastStep.rx !== newRx || 
+                lastStep.ry !== newRy ||
+                typeof lastStep.rx === 'undefined';
+              
+              if (shouldAdd) {
                 const s = currentSensors.current;
                 const sp = currentSensingPoints.current;
-                return [...prev, { ...parsed, sf: s.sf, sl: s.sl, sr: s.sr, sensingPoints: [...sp] }];
+                const newStep = { 
+                  ...parsed, 
+                  rx: newRx, 
+                  ry: newRy,
+                  sf: s.sf, 
+                  sl: s.sl, 
+                  sr: s.sr, 
+                  sensingPoints: [...sp] 
+                };
+                return [...prev, newStep];
               }
               return prev;
             });
