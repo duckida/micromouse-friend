@@ -107,8 +107,7 @@ export function ConnectionPanel({
             <button 
               className="solve-button"
               onClick={onStartSolve}
-              disabled={debugLevel === null}
-              title={debugLevel === null ? 'Waiting for setup payload from robot' : 'Start maze solving'}
+              title="Start maze solving (sends '7' to robot)"
             >
               Start Solve
             </button>

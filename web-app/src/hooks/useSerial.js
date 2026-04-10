@@ -33,7 +33,7 @@ export function useSerial() {
   const [timeoutWarning, setTimeoutWarning] = useState(false);
   const [pathHistory, setPathHistory] = useState([]);
   const [stepHistory, setStepHistory] = useState([]);
-  const [debugLevel, setDebugLevel] = useState(null);
+  const [debugLevel, setDebugLevel] = useState(2); // Default to DEBUG_FULL (2)
   const [thresholds, setThresholds] = useState({ tl: 7, tf: 30, tr: 7 }); // Default thresholds
   const [mazeDimensions, setMazeDimensions] = useState({ w: 3, h: 6 }); // Default dimensions
 
