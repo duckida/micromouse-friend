@@ -325,8 +325,8 @@ export function buildMazeFromMinimalState(minimalState, thresholds, currentState
   // Detect walls based on sensor thresholds
   // Front wall (relative to direction)
   const frontWall = sf >= thresholds.tf ? 1 : 0;
-  const leftWall = sl >= thresholds.tl ? 1 : 0;
-  const rightWall = sr >= thresholds.tr ? 1 : 0;
+  const leftWall = sl > thresholds.tl ? 1 : 0;
+  const rightWall = sr > thresholds.tr ? 1 : 0;
 
   // Get wall indices based on direction
   const frontIdx = getRelativeWallIndex(rd, 'front');

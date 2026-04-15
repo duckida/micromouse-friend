@@ -44,6 +44,9 @@ function getDebugLevelName(level) {
  * @param {InfoPanelProps} props - Component props
  */
 export function InfoPanel({ mazeState, timeoutWarning, debugLevel, thresholds }) {
+  const leftIsWall = mazeState && mazeState.sl > thresholds.tl;
+  const rightIsWall = mazeState && mazeState.sr > thresholds.tr;
+
   return (
     <div className="info-panel">
       <h3 className="info-title">Robot Info</h3>
@@ -122,16 +125,16 @@ export function InfoPanel({ mazeState, timeoutWarning, debugLevel, thresholds })
             </div>
             <div className="info-item">
               <span className="info-label">Left:</span>
-              <span className={`info-value sensor-value ${mazeState.sl >= thresholds.tl ? 'wall-detected' : ''}`}>
+              <span className={`info-value sensor-value ${leftIsWall ? 'wall-detected' : ''}`}>
                 {mazeState.sl !== undefined ? mazeState.sl : '—'}
-                {mazeState.sl >= thresholds.tl ? ' (GAP)' : ''}
+                {leftIsWall ? ' (WALL)' : ''}
               </span>
             </div>
             <div className="info-item">
               <span className="info-label">Right:</span>
-              <span className={`info-value sensor-value ${mazeState.sr >= thresholds.tr ? 'wall-detected' : ''}`}>
+              <span className={`info-value sensor-value ${rightIsWall ? 'wall-detected' : ''}`}>
                 {mazeState.sr !== undefined ? mazeState.sr : '—'}
-                {mazeState.sr >= thresholds.tr ? ' (GAP)' : ''}
+                {rightIsWall ? ' (WALL)' : ''}
               </span>
             </div>
           </div>

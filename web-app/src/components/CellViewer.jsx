@@ -11,17 +11,21 @@ export function CellViewer({ sensingPoints, activeIndex, thresholds, debugLevel 
   const points = sensingPoints || defaultPoints;
   const hasThresholds = thresholds && thresholds.tf !== undefined;
 
+  const isWallDetected = (side, value) => {
+    if (!hasThresholds || value === '-') return false;
+    if (side === 'f') return value >= thresholds.tf;
+    if (side === 'l') return value > thresholds.tl;
+    if (side === 'r') return value > thresholds.tr;
+    return false;
+  };
+
   const getCellClass = (index, side, value) => {
     const classes = ['cell-viewer-cell'];
     if (activeIndex === index) {
       classes.push('active');
     }
-    // Highlight if wall detected based on thresholds
-    if (hasThresholds && value !== '-') {
-      const threshold = side === 'f' ? thresholds.tf : (side === 'l' ? thresholds.tl : thresholds.tr);
-      if (value >= threshold) {
-        classes.push('wall-detected');
-      }
+    if (isWallDetected(side, value)) {
+      classes.push('wall-detected');
     }
     return classes.join(' ');
   };
@@ -31,7 +35,7 @@ export function CellViewer({ sensingPoints, activeIndex, thresholds, debugLevel 
                      points[1]?.sf !== undefined ? points[1].sf :
                      points[0]?.sf !== undefined ? points[0].sf : '-';
 
-  const frontIsWall = hasThresholds && frontValue !== '-' && frontValue >= thresholds.tf;
+  const frontIsWall = isWallDetected('f', frontValue);
 
   return (
     <div className="cell-viewer">

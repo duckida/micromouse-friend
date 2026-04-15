@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ConnectionManager, ConnectionState } from '../utils/connectionManager.js';
-import { buildMazeFromMinimalState, createEmptyMazeState } from '../utils/telemetryParser.js';
+import { createEmptyMazeState, getRelativeWallIndex } from '../utils/telemetryParser.js';
 
 function cloneMazeSnapshot(state) {
   return {
@@ -14,6 +14,47 @@ function cloneMazeSnapshot(state) {
     }))),
     sensingPoints: [...(state.sensingPoints || [null, null, null])]
   };
+}
+
+function createLiveMazeState(baseState, parsed, sensingPoints) {
+  const nextState = cloneMazeSnapshot(baseState);
+  nextState.rx = parsed.rx;
+  nextState.ry = parsed.ry;
+  nextState.rd = parsed.rd;
+  nextState.sf = parsed.sf;
+  nextState.sl = parsed.sl;
+  nextState.sr = parsed.sr;
+  nextState.sensingPoints = sensingPoints;
+  return nextState;
+}
+
+function setRelativeWall(state, side, present) {
+  const { rx, ry, rd, w, h, c } = state;
+  if (rx < 0 || rx >= w || ry < 0 || ry >= h) return;
+
+  const wallIdx = getRelativeWallIndex(rd, side);
+  const value = present ? 1 : 0;
+  c[rx][ry].w[wallIdx] = value;
+
+  const neighbors = [
+    { x: rx, y: ry + 1, oppIdx: 2 },
+    { x: rx + 1, y: ry, oppIdx: 3 },
+    { x: rx, y: ry - 1, oppIdx: 0 },
+    { x: rx - 1, y: ry, oppIdx: 1 }
+  ];
+
+  const neighbor = neighbors[wallIdx];
+  if (neighbor.x >= 0 && neighbor.x < w && neighbor.y >= 0 && neighbor.y < h) {
+    c[neighbor.x][neighbor.y].w[neighbor.oppIdx] = value;
+  }
+}
+
+function resetSideWallVotes(votes, rx = null, ry = null, active = false) {
+  votes.rx = rx;
+  votes.ry = ry;
+  votes.left = 0;
+  votes.right = 0;
+  votes.active = active;
 }
 
 /**
@@ -54,6 +95,7 @@ export function useSerial() {
   const mazeDimensionsRef = useRef({ w: 3, h: 6 });
   const currentSensors = useRef({ sf: 0, sl: 0, sr: 0 });
   const currentSensingPoints = useRef([null, null, null]);
+  const sideWallVotesRef = useRef({ rx: null, ry: null, left: 0, right: 0, active: false });
   const awaitingSetupPayload = useRef(false);
 
   // Initialize connection manager
@@ -120,6 +162,7 @@ export function useSerial() {
             setPathHistory([{ x: 0, y: 0 }]);
             setStepHistory([]);
             currentSensingPoints.current = [null, null, null];
+            resetSideWallVotes(sideWallVotesRef.current);
             awaitingSetupPayload.current = false;
             setTimeoutWarning(false);
             return;
@@ -134,6 +177,7 @@ export function useSerial() {
               mazeDimensionsRef.current.w,
               mazeDimensionsRef.current.h
             );
+            const currentThresholds = thresholdsRef.current;
 
             const hasSensingPoint = parsed.sp !== undefined && parsed.sp >= 0 && parsed.sp <= 2;
             const positionChanged = baseState.rx !== parsed.rx || baseState.ry !== parsed.ry;
@@ -145,27 +189,37 @@ export function useSerial() {
               sensingPoints[parsed.sp] = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
             }
 
-            // Sensing-point packets are for per-cell sensor logging; only the
-            // main minimal-state packet should commit walls into the maze.
-            const nextMazeState = hasSensingPoint
-              ? {
-                  ...baseState,
-                  rx: parsed.rx,
-                  ry: parsed.ry,
-                  rd: parsed.rd,
-                  sf: parsed.sf,
-                  sl: parsed.sl,
-                  sr: parsed.sr,
-                  sensingPoints
+            const nextMazeState = createLiveMazeState(baseState, parsed, sensingPoints);
+
+            if (hasSensingPoint) {
+              const votes = sideWallVotesRef.current;
+              const sameVoteCell = votes.rx === parsed.rx && votes.ry === parsed.ry;
+              const trackingSideWalls = positionChanged || (votes.active && sameVoteCell);
+
+              if (positionChanged) {
+                resetSideWallVotes(votes, parsed.rx, parsed.ry, true);
+              }
+
+              if (trackingSideWalls) {
+                votes.left += parsed.sl > currentThresholds.tl ? 1 : -1;
+                votes.right += parsed.sr > currentThresholds.tr ? 1 : -1;
+
+                if (parsed.sp >= 1) {
+                  setRelativeWall(nextMazeState, 'left', votes.left > 0);
+                  setRelativeWall(nextMazeState, 'right', votes.right > 0);
                 }
-              : {
-                  ...buildMazeFromMinimalState(
-                    parsed,
-                    thresholdsRef.current,
-                    baseState
-                  ),
-                  sensingPoints
-                };
+              } else {
+                resetSideWallVotes(votes, parsed.rx, parsed.ry, false);
+                if (parsed.sf >= currentThresholds.tf) {
+                  setRelativeWall(nextMazeState, 'front', true);
+                }
+              }
+            } else {
+              resetSideWallVotes(sideWallVotesRef.current, parsed.rx, parsed.ry, false);
+              if (parsed.sf >= currentThresholds.tf) {
+                setRelativeWall(nextMazeState, 'front', true);
+              }
+            }
 
             mazeStateRef.current = nextMazeState;
             setMazeState(nextMazeState);
@@ -241,10 +295,12 @@ export function useSerial() {
               setPathHistory([{ x: parsed.rx, y: parsed.ry }]);
               setStepHistory([]);
               currentSensingPoints.current = [null, null, null];
+              resetSideWallVotes(sideWallVotesRef.current);
               mazeDimensionsRef.current = { w: parsed.w, h: parsed.h };
               mazeStateRef.current = parsed;
               return parsed;
             }
+            resetSideWallVotes(sideWallVotesRef.current);
             mazeStateRef.current = parsed;
             return parsed;
           });
@@ -280,6 +336,7 @@ export function useSerial() {
             setPathHistory([]);
             setStepHistory([]);
             currentSensingPoints.current = [null, null, null];
+            resetSideWallVotes(sideWallVotesRef.current);
           }
           if (state.status === ConnectionState.ERROR) {
             const msg = (state.errorMessage || '').toLowerCase();
@@ -308,6 +365,7 @@ export function useSerial() {
        thresholdsRef.current = defaultThresholds;
        mazeDimensionsRef.current = defaultMazeDimensions;
        mazeStateRef.current = null;
+       resetSideWallVotes(sideWallVotesRef.current);
        setThresholds(defaultThresholds);
        setMazeDimensions(defaultMazeDimensions);
     } catch (error) {
