@@ -38,6 +38,9 @@ export function useSerial() {
   const [mazeDimensions, setMazeDimensions] = useState({ w: 3, h: 6 }); // Default dimensions
 
   const connectionManagerRef = useRef(null);
+  const mazeStateRef = useRef(null);
+  const thresholdsRef = useRef({ tl: 7, tf: 30, tr: 7 });
+  const mazeDimensionsRef = useRef({ w: 3, h: 6 });
   const currentSensors = useRef({ sf: 0, sl: 0, sr: 0 });
   const currentSensingPoints = useRef([null, null, null]);
   const awaitingSetupPayload = useRef(false);
@@ -92,11 +95,16 @@ export function useSerial() {
           if (parsed.setup === true) {
             console.log('Received setup payload:', parsed);
             setDebugLevel(parsed.level);
-            setThresholds({ tl: parsed.tl, tf: parsed.tf, tr: parsed.tr });
-            setMazeDimensions({ w: parsed.w, h: parsed.h });
+            const nextThresholds = { tl: parsed.tl, tf: parsed.tf, tr: parsed.tr };
+            const nextMazeDimensions = { w: parsed.w, h: parsed.h };
+            thresholdsRef.current = nextThresholds;
+            mazeDimensionsRef.current = nextMazeDimensions;
+            setThresholds(nextThresholds);
+            setMazeDimensions(nextMazeDimensions);
 
             // Initialize maze state with dimensions from setup
             const initialState = createEmptyMazeState(parsed.w, parsed.h);
+            mazeStateRef.current = initialState;
             setMazeState(initialState);
             setPathHistory([{ x: 0, y: 0 }]);
             setStepHistory([]);
@@ -109,22 +117,28 @@ export function useSerial() {
           // Minimal state packet (sensor readings + position)
           if (parsed.rx !== undefined && parsed.ry !== undefined && parsed.rd !== undefined &&
               parsed.sf !== undefined && !('w' in parsed)) {
-            setMazeState(prevState => {
-              // Build maze from sensor data using thresholds
-              const newState = buildMazeFromMinimalState(
-                parsed,
-                thresholds,
-                prevState || createEmptyMazeState(mazeDimensions.w, mazeDimensions.h)
-              );
+            currentSensors.current = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
 
-              // Update sensing points if available
-              const sensingPoints = [...(prevState?.sensingPoints || [null, null, null])];
-              if (parsed.sp !== undefined && parsed.sp >= 0 && parsed.sp <= 2) {
-                sensingPoints[parsed.sp] = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
-              }
+            const baseState = mazeStateRef.current || createEmptyMazeState(
+              mazeDimensionsRef.current.w,
+              mazeDimensionsRef.current.h
+            );
 
-              return { ...newState, sensingPoints };
-            });
+            // Build maze from sensor data using the latest setup values.
+            const newState = buildMazeFromMinimalState(
+              parsed,
+              thresholdsRef.current,
+              baseState
+            );
+
+            const sensingPoints = [...(baseState.sensingPoints || [null, null, null])];
+            if (parsed.sp !== undefined && parsed.sp >= 0 && parsed.sp <= 2) {
+              sensingPoints[parsed.sp] = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
+            }
+
+            const nextMazeState = { ...newState, sensingPoints };
+            mazeStateRef.current = nextMazeState;
+            setMazeState(nextMazeState);
 
             // Track path history
             setPathHistory(prev => {
@@ -156,23 +170,16 @@ export function useSerial() {
                 typeof lastStep.rx === 'undefined';
               
               if (shouldAdd) {
-                const s = currentSensors.current;
-                const sp = currentSensingPoints.current;
-                const newStep = { 
-                  ...parsed, 
-                  rx: newRx, 
-                  ry: newRy,
-                  sf: s.sf, 
-                  sl: s.sl, 
-                  sr: s.sr, 
-                  sensingPoints: [...sp] 
+                const newStep = {
+                  ...nextMazeState,
+                  sensingPoints: [...nextMazeState.sensingPoints]
                 };
                 return [...prev, newStep];
               }
               return prev;
             });
 
-            currentSensors.current = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
+            currentSensingPoints.current = sensingPoints;
             setTimeoutWarning(false);
             return;
           }
@@ -190,7 +197,9 @@ export function useSerial() {
               if (sp !== undefined && sp >= 0 && sp <= 2) {
                 sensingPoints[sp] = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
               }
-              return { ...prevState, sf: parsed.sf, sl: parsed.sl, sr: parsed.sr, sensingPoints };
+              const nextMazeState = { ...prevState, sf: parsed.sf, sl: parsed.sl, sr: parsed.sr, sensingPoints };
+              mazeStateRef.current = nextMazeState;
+              return nextMazeState;
             });
             setTimeoutWarning(false);
             return;
@@ -203,8 +212,11 @@ export function useSerial() {
               setPathHistory([{ x: parsed.rx, y: parsed.ry }]);
               setStepHistory([]);
               currentSensingPoints.current = [null, null, null];
+              mazeDimensionsRef.current = { w: parsed.w, h: parsed.h };
+              mazeStateRef.current = parsed;
               return parsed;
             }
+            mazeStateRef.current = parsed;
             return parsed;
           });
 
@@ -262,8 +274,13 @@ export function useSerial() {
       await manager.disconnect();
       setTimeoutWarning(false);
       setDebugLevel(null);
-      setThresholds({ tl: 7, tf: 30, tr: 7 });
-      setMazeDimensions({ w: 3, h: 6 });
+       const defaultThresholds = { tl: 7, tf: 30, tr: 7 };
+       const defaultMazeDimensions = { w: 3, h: 6 };
+       thresholdsRef.current = defaultThresholds;
+       mazeDimensionsRef.current = defaultMazeDimensions;
+       mazeStateRef.current = null;
+       setThresholds(defaultThresholds);
+       setMazeDimensions(defaultMazeDimensions);
     } catch (error) {
       console.error('Disconnect error:', error);
     }
