@@ -5,6 +5,17 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ConnectionManager, ConnectionState } from '../utils/connectionManager.js';
 import { buildMazeFromMinimalState, createEmptyMazeState } from '../utils/telemetryParser.js';
 
+function cloneMazeSnapshot(state) {
+  return {
+    ...state,
+    c: state.c.map(col => col.map(cell => ({
+      ...cell,
+      w: [...cell.w]
+    }))),
+    sensingPoints: [...(state.sensingPoints || [null, null, null])]
+  };
+}
+
 /**
  * @typedef {Object} UseSerialReturn
  * @property {Object} connectionState - Connection state
@@ -124,19 +135,38 @@ export function useSerial() {
               mazeDimensionsRef.current.h
             );
 
-            // Build maze from sensor data using the latest setup values.
-            const newState = buildMazeFromMinimalState(
-              parsed,
-              thresholdsRef.current,
-              baseState
-            );
+            const hasSensingPoint = parsed.sp !== undefined && parsed.sp >= 0 && parsed.sp <= 2;
+            const positionChanged = baseState.rx !== parsed.rx || baseState.ry !== parsed.ry;
+            const sensingPoints = positionChanged
+              ? [null, null, null]
+              : [...(baseState.sensingPoints || [null, null, null])];
 
-            const sensingPoints = [...(baseState.sensingPoints || [null, null, null])];
-            if (parsed.sp !== undefined && parsed.sp >= 0 && parsed.sp <= 2) {
+            if (hasSensingPoint) {
               sensingPoints[parsed.sp] = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
             }
 
-            const nextMazeState = { ...newState, sensingPoints };
+            // Sensing-point packets are for per-cell sensor logging; only the
+            // main minimal-state packet should commit walls into the maze.
+            const nextMazeState = hasSensingPoint
+              ? {
+                  ...baseState,
+                  rx: parsed.rx,
+                  ry: parsed.ry,
+                  rd: parsed.rd,
+                  sf: parsed.sf,
+                  sl: parsed.sl,
+                  sr: parsed.sr,
+                  sensingPoints
+                }
+              : {
+                  ...buildMazeFromMinimalState(
+                    parsed,
+                    thresholdsRef.current,
+                    baseState
+                  ),
+                  sensingPoints
+                };
+
             mazeStateRef.current = nextMazeState;
             setMazeState(nextMazeState);
 
@@ -169,14 +199,13 @@ export function useSerial() {
                 lastStep.ry !== newRy ||
                 typeof lastStep.rx === 'undefined';
               
+              const newStep = cloneMazeSnapshot(nextMazeState);
+
               if (shouldAdd) {
-                const newStep = {
-                  ...nextMazeState,
-                  sensingPoints: [...nextMazeState.sensingPoints]
-                };
                 return [...prev, newStep];
               }
-              return prev;
+
+              return [...prev.slice(0, -1), newStep];
             });
 
             currentSensingPoints.current = sensingPoints;
