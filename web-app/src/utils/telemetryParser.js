@@ -314,7 +314,10 @@ export function buildMazeFromMinimalState(minimalState, thresholds, currentState
 
   // Create cells if needed, or copy existing
   const cells = currentState ?
-    currentState.c.map(col => col.map(cell => ({ ...cell }))) :
+    currentState.c.map(col => col.map(cell => ({
+      ...cell,
+      w: [...cell.w]
+    }))) :
     createEmptyCells(width, height);
 
   const { rx, ry, rd, sf, sl, sr } = minimalState;
