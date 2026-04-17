@@ -12,7 +12,9 @@ function cloneMazeSnapshot(state) {
       ...cell,
       w: [...cell.w]
     }))),
-    sensingPoints: [...(state.sensingPoints || [null, null, null])]
+    sensingPoints: (state.sensingPoints || [null, null, null]).map(point => (
+      point ? { ...point } : point
+    ))
   };
 }
 
@@ -24,6 +26,7 @@ function createLiveMazeState(baseState, parsed, sensingPoints) {
   nextState.sf = parsed.sf;
   nextState.sl = parsed.sl;
   nextState.sr = parsed.sr;
+   nextState.gh = parsed.gh ?? nextState.gh ?? null;
   nextState.sensingPoints = sensingPoints;
   return nextState;
 }
@@ -93,7 +96,7 @@ export function useSerial() {
   const mazeStateRef = useRef(null);
   const thresholdsRef = useRef({ tl: 7, tf: 30, tr: 7 });
   const mazeDimensionsRef = useRef({ w: 3, h: 6 });
-  const currentSensors = useRef({ sf: 0, sl: 0, sr: 0 });
+  const currentSensors = useRef({ sf: 0, sl: 0, sr: 0, gh: null });
   const currentSensingPoints = useRef([null, null, null]);
   const sideWallVotesRef = useRef({ rx: null, ry: null, left: 0, right: 0, active: false });
   const awaitingSetupPayload = useRef(false);
@@ -171,7 +174,7 @@ export function useSerial() {
           // Minimal state packet (sensor readings + position)
           if (parsed.rx !== undefined && parsed.ry !== undefined && parsed.rd !== undefined &&
               parsed.sf !== undefined && !('w' in parsed)) {
-            currentSensors.current = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
+            currentSensors.current = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr, gh: parsed.gh ?? null };
 
             const baseState = mazeStateRef.current || createEmptyMazeState(
               mazeDimensionsRef.current.w,
@@ -183,10 +186,10 @@ export function useSerial() {
             const positionChanged = baseState.rx !== parsed.rx || baseState.ry !== parsed.ry;
             const sensingPoints = positionChanged
               ? [null, null, null]
-              : [...(baseState.sensingPoints || [null, null, null])];
+              : (baseState.sensingPoints || [null, null, null]).map(point => (point ? { ...point } : point));
 
             if (hasSensingPoint) {
-              sensingPoints[parsed.sp] = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
+              sensingPoints[parsed.sp] = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr, gh: parsed.gh ?? null };
             }
 
             const nextMazeState = createLiveMazeState(baseState, parsed, sensingPoints);
@@ -271,16 +274,16 @@ export function useSerial() {
           if ('sf' in parsed && !('w' in parsed) && !('rx' in parsed)) {
             const sp = parsed.sp;
             if (sp !== undefined && sp >= 0 && sp <= 2) {
-              currentSensingPoints.current[sp] = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
+              currentSensingPoints.current[sp] = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr, gh: parsed.gh ?? null };
             }
-            currentSensors.current = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
+            currentSensors.current = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr, gh: parsed.gh ?? null };
             setMazeState(prevState => {
               if (!prevState) return prevState;
-              const sensingPoints = [...(prevState.sensingPoints || [null, null, null])];
+              const sensingPoints = (prevState.sensingPoints || [null, null, null]).map(point => (point ? { ...point } : point));
               if (sp !== undefined && sp >= 0 && sp <= 2) {
-                sensingPoints[sp] = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr };
+                sensingPoints[sp] = { sf: parsed.sf, sl: parsed.sl, sr: parsed.sr, gh: parsed.gh ?? null };
               }
-              const nextMazeState = { ...prevState, sf: parsed.sf, sl: parsed.sl, sr: parsed.sr, sensingPoints };
+              const nextMazeState = { ...prevState, sf: parsed.sf, sl: parsed.sl, sr: parsed.sr, gh: parsed.gh ?? prevState.gh ?? null, sensingPoints };
               mazeStateRef.current = nextMazeState;
               return nextMazeState;
             });
@@ -320,7 +323,7 @@ export function useSerial() {
             if (!lastStep || lastStep.rx !== parsed.rx || lastStep.ry !== parsed.ry) {
               const s = currentSensors.current;
               const sp = currentSensingPoints.current;
-              return [...prev, { ...parsed, sf: s.sf, sl: s.sl, sr: s.sr, sensingPoints: [...sp] }];
+              return [...prev, { ...parsed, sf: s.sf, sl: s.sl, sr: s.sr, gh: s.gh, sensingPoints: sp.map(point => (point ? { ...point } : point)) }];
             }
             return prev;
           });

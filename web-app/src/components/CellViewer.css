@@ -54,6 +54,32 @@
   flex-shrink: 0;
 }
 
+.cell-viewer-gyro {
+  position: absolute;
+  top: calc(50% + 40px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.cell-viewer-gyro-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cell-viewer-gyro-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6ea1ff;
+}
+
 .cell-viewer-triangle {
   width: 0;
   height: 0;

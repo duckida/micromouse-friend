@@ -14,6 +14,7 @@
  * @property {number} sf - Front sensor value
  * @property {number} sl - Left sensor value
  * @property {number} sr - Right sensor value
+ * @property {number} [gh] - Gyro heading
  * @property {number} [sp] - Sensing point index (0, 1, or 2)
  */
 
@@ -26,6 +27,7 @@
  * @property {number} rx - Robot X
  * @property {number} ry - Robot Y
  * @property {number} rd - Robot direction (0, 90, 180, 270)
+ * @property {number} [gh] - Gyro heading
  */
 
 /**
@@ -41,8 +43,9 @@
  * @property {number} [sf] - Front sensor value
  * @property {number} [sl] - Left sensor value
  * @property {number} [sr] - Right sensor value
+ * @property {number} [gh] - Gyro heading
  * @property {number} [sp] - Sensing point index (0, 1, or 2) within current cell
- * @property {Array<{sf: number, sl: number, sr: number}>} [sensingPoints] - Array of 3 sensor readings for current cell
+ * @property {Array<{sf: number, sl: number, sr: number, gh?: number|null}>} [sensingPoints] - Array of 3 sensor readings for current cell
  */
 
 /**
@@ -64,6 +67,7 @@
  * @property {number} sf - Front sensor value
  * @property {number} sl - Left sensor value
  * @property {number} sr - Right sensor value
+ * @property {number} [gh] - Gyro heading
  */
 
 /**
@@ -383,6 +387,7 @@ export function buildMazeFromMinimalState(minimalState, thresholds, currentState
     sf,
     sl,
     sr,
+    gh: minimalState.gh ?? currentState?.gh ?? null,
     sensingPoints: currentState?.sensingPoints || [null, null, null]
   };
 }
@@ -441,7 +446,9 @@ export function createEmptyMazeState(width = 3, height = 3) {
     c: cells,
     sf: 0,
     sl: 0,
-    sr: 0
+    sr: 0,
+    gh: null,
+    sensingPoints: [null, null, null]
   };
 }
 

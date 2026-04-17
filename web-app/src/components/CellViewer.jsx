@@ -3,9 +3,9 @@ import './CellViewer.css';
 
 export function CellViewer({ sensingPoints, activeIndex, thresholds, debugLevel }) {
   const defaultPoints = [
-    { sf: '-', sl: '-', sr: '-' },
-    { sf: '-', sl: '-', sr: '-' },
-    { sf: '-', sl: '-', sr: '-' }
+    { sf: '-', sl: '-', sr: '-', gh: '-' },
+    { sf: '-', sl: '-', sr: '-', gh: '-' },
+    { sf: '-', sl: '-', sr: '-', gh: '-' }
   ];
 
   const points = sensingPoints || defaultPoints;
@@ -17,6 +17,12 @@ export function CellViewer({ sensingPoints, activeIndex, thresholds, debugLevel 
     if (side === 'l') return value > thresholds.tl;
     if (side === 'r') return value > thresholds.tr;
     return false;
+  };
+
+  const formatGyro = (value) => {
+    if (value === '-' || value === null || value === undefined) return '-';
+    if (typeof value !== 'number' || Number.isNaN(value)) return '-';
+    return `${value.toFixed(1)}°`;
   };
 
   const getCellClass = (index, side, value) => {
@@ -34,6 +40,9 @@ export function CellViewer({ sensingPoints, activeIndex, thresholds, debugLevel 
   const frontValue = points[2]?.sf !== undefined ? points[2].sf :
                      points[1]?.sf !== undefined ? points[1].sf :
                      points[0]?.sf !== undefined ? points[0].sf : '-';
+  const gyroValue = points[2]?.gh !== undefined && points[2]?.gh !== null ? points[2].gh :
+                    points[1]?.gh !== undefined && points[1]?.gh !== null ? points[1].gh :
+                    points[0]?.gh !== undefined && points[0]?.gh !== null ? points[0].gh : '-';
 
   const frontIsWall = isWallDetected('f', frontValue);
 
@@ -66,6 +75,11 @@ export function CellViewer({ sensingPoints, activeIndex, thresholds, debugLevel 
 
         <div className="cell-viewer-circle">
           <div className="cell-viewer-triangle"></div>
+        </div>
+
+        <div className="cell-viewer-gyro">
+          <span className="cell-viewer-gyro-label">Gyro</span>
+          <span className="cell-viewer-gyro-value">{formatGyro(gyroValue)}</span>
         </div>
 
         <div className="cell-viewer-right-col">
