@@ -16,6 +16,9 @@ export class ConnectionManager {
     this.port = null;
     this.reader = null;
     this.writer = null;
+    this.readablePipe = null;
+    this.writerPipe = null;
+    this._disconnecting = false;
     this.buffer = '';
     this.state = ConnectionState.DISCONNECTED;
     this.errorMessage = null;
@@ -84,12 +87,16 @@ export class ConnectionManager {
 
       // Set up text decoder stream
       const decoder = new TextDecoderStream();
-      this.port.readable.pipeTo(decoder.writable);
+      this.readablePipe = this.port.readable.pipeTo(decoder.writable);
+      // Keep a no-op catch attached so teardown/unload never produces an
+      // unhandled promise rejection.
+      this.readablePipe.catch(() => {});
       this.reader = decoder.readable.getReader();
       
       // Set up writer for sending commands
       const encoder = new TextEncoderStream();
-      encoder.readable.pipeTo(this.port.writable);
+      this.writerPipe = encoder.readable.pipeTo(this.port.writable);
+      this.writerPipe.catch(() => {});
       this.writer = encoder.writable.getWriter();
 
       this._updateState(ConnectionState.CONNECTED);
@@ -105,25 +112,67 @@ export class ConnectionManager {
   }
 
   // Disconnect from the serial port
+  // Ordered, guarded teardown: every step is individually wrapped so a
+  // failure in one step can never skip port.close() or leave the state
+  // stuck on CONNECTED/ERROR.
   async disconnect() {
+    if (this._disconnecting) {
+      return;
+    }
+    this._disconnecting = true;
+
     try {
-      if (this.reader) {
-        await this.reader.cancel();
+      // 1. Reader side: cancel, wait for the pipe to settle, release lock.
+      try {
+        if (this.reader) {
+          await this.reader.cancel().catch(() => {});
+          if (this.readablePipe) {
+            await this.readablePipe.catch(() => {});
+          }
+          this.reader.releaseLock();
+        } else if (this.readablePipe) {
+          await this.readablePipe.catch(() => {});
+        }
+      } catch (error) {
+        console.error('Error tearing down reader:', error);
+      } finally {
         this.reader = null;
+        this.readablePipe = null;
       }
-      if (this.writer) {
-        await this.writer.close();
+
+      // 2. Writer side: close, wait for the pipe to settle, release lock.
+      try {
+        if (this.writer) {
+          await this.writer.close().catch(() => {});
+          if (this.writerPipe) {
+            await this.writerPipe.catch(() => {});
+          }
+          this.writer.releaseLock();
+        } else if (this.writerPipe) {
+          await this.writerPipe.catch(() => {});
+        }
+      } catch (error) {
+        console.error('Error tearing down writer:', error);
+      } finally {
         this.writer = null;
+        this.writerPipe = null;
       }
-      if (this.port) {
-        await this.port.close();
+
+      // 3. Port last — always attempted, even if stream teardown failed.
+      try {
+        if (this.port) {
+          await this.port.close().catch(() => {});
+        }
+      } catch (error) {
+        console.error('Error closing port:', error);
+      } finally {
         this.port = null;
       }
+
       this.buffer = '';
+    } finally {
+      this._disconnecting = false;
       this._updateState(ConnectionState.DISCONNECTED);
-    } catch (error) {
-      console.error('Error during disconnect:', error);
-      this._updateState(ConnectionState.ERROR, this._getErrorMessage(error));
     }
   }
 
@@ -176,7 +225,7 @@ export class ConnectionManager {
         }
 
       } catch (error) {
-        if (error.name !== 'AbortError') {
+        if (error.name !== 'AbortError' && !this._disconnecting) {
           console.error('Read error:', error);
           this._updateState(ConnectionState.ERROR, this._getErrorMessage(error));
         }

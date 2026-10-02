@@ -142,6 +142,13 @@ export function useSerial() {
     if (!manager) return;
 
     try {
+      // Tear down any stale connection before requesting a new port.
+      // This replaces the old "reload the whole page" workaround for
+      // "port is already in use" errors and keeps retries reload-free.
+      if (manager.getState().status !== ConnectionState.DISCONNECTED) {
+        await manager.disconnect();
+      }
+
       await manager.requestPort();
 
       await manager.connect(
@@ -341,12 +348,13 @@ export function useSerial() {
             currentSensingPoints.current = [null, null, null];
             resetSideWallVotes(sideWallVotesRef.current);
           }
-          if (state.status === ConnectionState.ERROR) {
-            const msg = (state.errorMessage || '').toLowerCase();
-            if (msg.includes('port is already in use') || msg.includes('unexpected error')) {
-              window.location.reload();
-            }
-          }
+          // NOTE: Do NOT reload the page from this callback. It is invoked
+          // from the read-loop error handler while the serial port and its
+          // ReadableStream/WritableStream locks are still open; reloading
+          // mid-stream crashes the Android Chrome tab.
+          // The error is surfaced via connectionState above and the user can
+          // retry with the Connect button (connect() tears down any stale
+          // connection first).
         }
       );
     } catch (error) {
@@ -375,6 +383,35 @@ export function useSerial() {
       console.error('Disconnect error:', error);
     }
   }, []);
+
+  // Tear down the serial connection when the page is hidden or unloading.
+  // Android kills renderers that background with open streams / in-flight
+  // pipeTo() promises, so close everything before the tab goes away.
+  useEffect(() => {
+    const teardown = () => {
+      const manager = connectionManagerRef.current;
+      if (!manager || manager.getState().status === ConnectionState.DISCONNECTED) {
+        return;
+      }
+      // disconnect() resets all app state; ignore errors so teardown
+      // failures during unload never surface as unhandled rejections.
+      disconnect().catch((error) => console.error('Teardown error:', error));
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        teardown();
+      }
+    };
+
+    window.addEventListener('pagehide', teardown);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pagehide', teardown);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [disconnect]);
 
   return {
     connectionState,

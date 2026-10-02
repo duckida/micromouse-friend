@@ -12,6 +12,7 @@ import './ConnectionPanel.css';
  * @property {string|null} connectionState.errorMessage - Error message if any
  * @property {number|null} debugLevel - Current debug level (0 = none, 1 = minimal, 2 = full, null = unknown)
  * @property {Function} onConnect - Connect handler
+ * @property {Function} onDisconnect - Disconnect handler
  * @property {Function} onStartSolve - Start maze solve handler
  * @property {boolean} isSupported - Whether Web Serial API is supported
  */
@@ -24,6 +25,7 @@ export function ConnectionPanel({
   connectionState, 
   debugLevel,
   onConnect, 
+  onDisconnect,
   onStartSolve,
   isSupported 
 }) {
@@ -100,7 +102,7 @@ export function ConnectionPanel({
           <>
             <button 
               className="disconnect-button"
-              onClick={() => window.location.reload()}
+              onClick={onDisconnect}
             >
               Disconnect
             </button>
