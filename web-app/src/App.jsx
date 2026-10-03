@@ -66,6 +66,9 @@ function App() {
   // Step navigation: -1 = live, 0+ = step index
   const [currentStep, setCurrentStep] = useState(-1);
 
+  // Timestamp (ms) when Start Solve was last pressed; null = no solve started
+  const [solveStartedAt, setSolveStartedAt] = useState(null);
+
   // Compute display state
   const displayState = currentStep >= 0 && currentStep < stepHistory.length
     ? { ...stepHistory[currentStep], sensingPoints: stepHistory[currentStep].sensingPoints || [null, null, null] }
@@ -116,6 +119,7 @@ function App() {
 
   // Start maze solving mode
   const handleStartSolve = useCallback(() => {
+    setSolveStartedAt(Date.now());
     send('7\n');
   }, [send]);
 
@@ -209,6 +213,7 @@ function App() {
                 timeoutWarning={timeoutWarning}
                 debugLevel={debugLevel}
                 thresholds={thresholds}
+                solveStartedAt={solveStartedAt}
               />
 
               <SettingsPanel

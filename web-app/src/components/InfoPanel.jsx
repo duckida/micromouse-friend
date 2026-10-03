@@ -1,7 +1,7 @@
 // InfoPanel Component
 // Displays telemetry metadata and connection status
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './InfoPanel.css';
 
 /**
@@ -10,7 +10,39 @@ import './InfoPanel.css';
  * @property {boolean} timeoutWarning - Whether to show timeout warning
  * @property {number|null} debugLevel - Current debug level (0 = none, 1 = minimal, 2 = full, null = unknown)
  * @property {Object} thresholds - Sensor thresholds {tl, tf, tr}
+ * @property {number|null} solveStartedAt - Timestamp (ms) when Start Solve was pressed, null if no solve started
  */
+
+/**
+ * Format elapsed time since solve start as minutes and seconds
+ * @param {number} startedAt - Start timestamp in ms
+ * @param {number} now - Current timestamp in ms
+ * @returns {string} Formatted time, e.g. "0:42" or "12:05"
+ */
+function formatSolveTime(startedAt, now) {
+  const totalSeconds = Math.max(0, Math.floor((now - startedAt) / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+/**
+ * Live elapsed-time display for an active solve.
+ * Remounted via `key={startedAt}` when a new solve starts so its clock
+ * starts fresh without any setState-in-effect.
+ * @param {Object} props
+ * @param {number} props.startedAt - Start timestamp in ms
+ */
+function SolveTimer({ startedAt }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return <span className="info-value">{formatSolveTime(startedAt, now)}</span>;
+}
 
 /**
  * Get direction name from degrees
@@ -43,7 +75,7 @@ function getDebugLevelName(level) {
  * Info panel component
  * @param {InfoPanelProps} props - Component props
  */
-export function InfoPanel({ mazeState, timeoutWarning, debugLevel, thresholds }) {
+export function InfoPanel({ mazeState, timeoutWarning, debugLevel, thresholds, solveStartedAt }) {
   const leftIsWall = mazeState && mazeState.sl > thresholds.tl;
   const rightIsWall = mazeState && mazeState.sr > thresholds.tr;
 
@@ -94,6 +126,14 @@ export function InfoPanel({ mazeState, timeoutWarning, debugLevel, thresholds })
             <span className="info-value">
               {mazeState.w} × {mazeState.h}
             </span>
+          </div>
+
+          {/* Time since Start Solve was pressed */}
+          <div className="info-item">
+            <span className="info-label">Solve Time:</span>
+            {solveStartedAt
+              ? <SolveTimer key={solveStartedAt} startedAt={solveStartedAt} />
+              : <span className="info-value">—</span>}
           </div>
 
           {/* Sensor Thresholds */}
